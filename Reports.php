@@ -2227,7 +2227,7 @@ if ($selrep) {
 				echo "</tbody>";
 				echo "<tfoot>";
 				echo "<tr><th>Add Table to selected DB: <input type='text' name-'newtab' /></th></tr>";
-				$ch="";
+				$ch=""; // xx
 				if ($remtab) {
 					$cb="checked";
 				}
