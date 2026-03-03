@@ -166,6 +166,9 @@ th, td {
 .red {
 	color: red;
 }
+.blue {
+	color: blue;
+}
 .wrn {
 	background-color: red;
 	color: white;	
@@ -178,9 +181,25 @@ th, td {
 </style>
 <script>
 function test() {
-	//x=document.getElementById('fildet');
-	//x.value='';
+	x=document.getElementById('selrep');
+	y=document.getElementById('seltab');
+	z=document.getElementById('selsched');
+	f=document.getElementById('selfnc');
+	c=document.getElementById('selchg');
+	if (y) {
+		y.value='None';
+	}	
+	if (z) {
+		z.value='None';
+	}
+	if (f) {
+		f.value='None';
+	}	
+	if (c) {
+		c.value='None';
+	}	
 	document.getElementById("subm").submit();
+	//selchg
 }
 </script>
 </head>
@@ -241,9 +260,15 @@ $mergedPDF = $_POST["mergedPDF"];
 $format = $_POST["format"];
 $destreport = $_POST["destreport"];
 $newrecurrence = $_POST["newrecurrence"];
-$updtsched = $_POST["updtsched"];
-
-
+$updtsched = $_POST["updtsched"];		
+//Add db
+$db = $_POST["db"];	
+$ip = $_POST["ip"];	
+$server = $_POST["server"];	
+$dbType = $_POST["dbType"];	
+$newDBtype = $_POST["newDBtype"];	
+$description = $_POST["description"];	
+$addDB = $_POST["addDB"];	
 
 $repc = mysql_connect('192.168.110.17', 'crystal', '#Cry001#')
 	or die('Could not connect to .17: ' . mysql_error());
@@ -301,7 +326,44 @@ if ($updtsched) {
 	$su.="$destreport  &#13";
 	$su.="newrecurrence &#13";
 	$su.="$newrecurrence  &#13";
+	$su.="&#13 selsrc= $selsrc ";
+	//echo "$updtsched $selsched<br>";	
+	if ($updtsched=="Update Schedule") {
+		$za=0;
+		if ($zipped) {
+			$za=1;
+		}
+		$ma=0;
+		if ($mergedPDF) {
+			$ma=1;
+		}	
+		if (!$selsrc || $selsrc=="None") {
+			$updts1="update Schedules set 
+						Formats='$format',
+						DestReport='$destreport'	
+					where schedID='$selsched'";
+			//$updq = mysql_query($updts,$repc);
+		} else {
+			$updts2="update SourceLink set 
+						DestRepName='$destreport',
+						Format='$format'
+					where RepID=$selsrc and schID='$selsched'";					
+			//$updq = mysql_query($updts,$repc);			
+		}
 
+		$updts="update Schedules set 
+					DestType='$destType',
+					Recurrence='$recurrence',
+					runtime='$runtime',
+					Filters='$filtersched',
+					Parameters='$parameters',
+					DestDetail='$destdet',
+					Zipped=$za,
+					MergedPDF=$ma	
+				where schedID='$selsched'";
+			
+		//$updq = mysql_query($updts,$repc);	
+	}
 }
 //echo "$taglnk <br>";
 session_start();
@@ -921,7 +983,7 @@ $ti .= "fildet= $fildet &#13";
 $ti .= "filtype= $filtype &#13";
 
 
-echo "<tr><th><span title='$ti'>Report Filter:</span> <select name='filtype' id='filtype'  onchange='test()'>$wa</td></tr>";
+echo "<tr><th><span title='$ti'>Report Filter:</span> <select name='filtype' id='filtype'  onchange='this.form.submit()'>$wa</td></tr>";
 
 //echo "<tr><th><span title='$ti'>Report Filter:</span> <select name='filtype' id='filtype'  onchange='test()'>$wa</td></tr>";
 /////////////////////////////////////////////////// end FILTERS ////////////////////////////////////////
@@ -936,7 +998,7 @@ while ($repr = mysql_fetch_array($repq , MYSQL_ASSOC)) {
 	if ($selrep==$repr['repID']) {
 		$selected="checked";
 	}
-	echo "<tr><td>$cnt<input type='radio' name='selrep' value='{$repr['repID']}' $selected onchange='this.form.submit()' />{$repr['Report']}</td></tr>";
+	echo "<tr><td>$cnt<input type='radio' name='selrep' id='selrep' value='{$repr['repID']}' $selected onchange='test()' />{$repr['Report']}</td></tr>";
 }
 echo "</tbody></table></div>"; // d1
 echo "<div class='d2'>";	
@@ -1035,14 +1097,18 @@ if ($selrep) {
 			echo "<tfoot>";
 		} else {
 			echo "<tr><th colspan='2'>{$rselr['Report']}</th></tr></thead><tbody>";
-			echo "<tr><th>Status</th><td>{$rselr['Status']}</td></tr>";
+			$cl = "class=''";
+			if ($rselr['Status']!="Active") {
+				$cl = " class='red' ";
+			}
+			echo "<tr><th>Status</th><td $cl>{$rselr['Status']}</td></tr>";
 			echo "<tr><th>Path</th><td>{$rselr['Path']}</td></tr>";
 			echo "<tr><th>Source</th><td>{$rselr['Source']}</td></tr>";
 			echo "<tr><th>Description</th><td><textarea>{$rselr['Description']}</textarea></td></tr>";
 			echo "<tr><th>Filters</th><td><textarea>{$rselr['Filters']}</textarea></td></tr></tbody>";
 			echo "<tfoot><tr><th>Timestamp</th><th>{$rselr['timestamp']}</th></tr>";
 		}
-
+		
 		$srcs= "select r.Report,r.repID,l.DestRepName,l.Format,r.ReportType,s.Recurrence from SourceLink l 
 				inner join Schedules s on s.schedID=l.schID
 				inner join Reports r on r.repID=s.repID
@@ -1083,14 +1149,15 @@ if ($selrep) {
 			if (!$selcomp) {
 				$selcomp='Functions';
 			}
-		} else {
-			$complist=['Tags','Changes','Tables'];
+		} else if ($selcomp=="Edit Report") {
+			$complist=['Schedules','Functions','Tags','Changes','SQLstatement','Tables','Edit Report'];
 			if (!in_array($selcomp, $complist)) {
-				$selcomp='Tags';
+				$selcomp='Schedules';
 			}				
-		}
+		} 
 		//sh, recipients, html
 		echo "<tr><th></th><td><select name='selcomp' onchange='this.form.submit()'>";
+				echo "<optgroup class='blue' label='Select Component'>";
 				for ($i=0;$i<count($complist);$i++) {
 					if ($selcomp==$complist[$i]) {
 						echo "<option selected>{$complist[$i]}</option>";
@@ -1098,26 +1165,29 @@ if ($selrep) {
 						echo "<option>{$complist[$i]}</option>";
 					}
 				}
-				
+				echo "</optgroup>";
+				echo "<optgroup class='red' label='Action'>";
 				if ($selcomp=='Edit Report') {
-					echo "<option class='red' selected>Edit Report</option>";
+					echo "<option selected>Edit Report</option>";
 				} else {
-					echo "<option class='red'>Edit Report</option>";
+					echo "<option>Edit Report</option>";
 				}
 				if ($selcomp=='Add Report') {
-					echo "<option class='red' selected>Add Report</option>";
+					echo "<option selected>Add Report</option>";
 				} else {
-					echo "<option class='red'>Add Report</option>";
+					echo "<option>Add Report</option>";
 				}	
 				if ($selcomp=='Remove Report') {
-					echo "<option class='red' selected>Remove Report</option>";
+					echo "<option selected>Remove Report</option>";
 				} else {
-					echo "<option class='red'>Remove Report</option>";
-				}			
+					echo "<option>Remove Report</option>";
+				}	
+				echo "</optgroup>";
 		echo "</select>";
 		if ($selcomp=='Linked Reports') {
 			echo "🔷<input type='text' name='fltrep' value='$fltrep' onchange='this.form.submit()' />";
 		}
+		
 		if ($selcomp=='Edit Report' || $selcomp=='Add Report' ) {
 			echo "🔷<input type='submit' name='subrep' title='$ru' value='$selcomp' onclick='this.form.submit()' /></td></tr>";
 		}
@@ -1196,6 +1266,7 @@ if ($selrep) {
 			$srcq = mysql_query($srcs,$repc);
 			if ($selpub=="None" || !$selpub) {
 				echo "<option selected>None</option>";
+				$selpub="None";
 			} else {
 				echo "<option>None</option>";
 			}
@@ -1210,34 +1281,48 @@ if ($selrep) {
 			echo "</select></td></tr>";
 		
 		} 	
-		
 		if ($selcomp=='Schedules') {
 			$schs="select * from Schedules where repID='$selrep'";
 			$schq = mysql_query($schs,$repc);			
-			$selsch=array('None','Add Schedule'); 
-
+			//$selsch1=array('None','Add Schedule'); 
+			$selsch1=array('Add Schedule'); 
+			$selsch2=[];
 			while ($schr = mysql_fetch_array($schq , MYSQL_ASSOC)) {
-				array_push($selsch, $schr['schedID']);	
+				array_push($selsch2, $schr['schedID']);	
 			}
-			echo "🔷<select name='selsched' onchange='this.form.submit()'>";
-				$sw=0;
-				for ($i=0;$i<count($selsch);$i++) {
-					$cl="class=''";
-					if ($selsch[$i]=='Add Schedule') {
-						$cl="class='red'";
-					}
-					
-					if ($selsched==$selsch[$i]) {
-						$sw=1;
-						echo "<option $cl selected>{$selsch[$i]}</option>";
+
+			echo "🔷<select name='selsched' id='selsched' onchange='this.form.submit()'>";
+				if (!$selsched || $selsched=="None") {
+					echo "<option selected>None</option>";
+					$selsched="None";
+				} else {
+					echo "<option>None</option>";
+				}
+				echo "<optgroup class='blue' label='Select Schedule'>";
+				for ($i=0;$i<count($selsch2);$i++) {
+					if ($selsched==$selsch2[$i]) {
+						echo "<option selected>{$selsch2[$i]}</option>";
 					} else {
-						echo "<option $cl>{$selsch[$i]}</option>";
+						echo "<option>{$selsch2[$i]}</option>";
+					}		
+				}	
+				echo "</optgroup>";
+				echo "<optgroup class='red' label='Action'>";
+				
+				for ($i=0;$i<count($selsch1);$i++) {
+					if ($selsched==$selsch1[$i]) {
+						//$sw=1;
+						echo "<option selected>{$selsch1[$i]}</option>";
+					} else {
+						echo "<option>{$selsch1[$i]}</option>";
 					}		
 				}
-				if (!$sw) {
-					$selsched="None";
-				}
-			echo "</select></td></tr>";
+				//if (!$sw) {
+				//	$selsched="None";
+				//}
+				
+				echo "</optgroup></select>";				
+			echo "</td></tr>";
 			if (($fltr['reportType']=="Publication" || $fltr['reportType']=="sh") && $selsched>0) {
 				
 				$srcs="select r.repID,r.Report,r.ReportType from Reports r 
@@ -1255,11 +1340,16 @@ if ($selrep) {
 					if (!in_array($srcr['ReportType'], $tpeList)) {
 						array_push($tpeList,$srcr['ReportType']);
 					}
-					
+					$cl="";
+					$ti="";
+					if ($srcr['ReportType']=='Recipients') {
+						$cl="blue";
+						$ti="Recipients";
+					}
 					if ($selsrc==$srcr['repID']) {
-						$wa.=  "<option value='{$srcr['repID']}' selected>{$srcr['Report']}</option>";
+						$wa.=  "<option class='$cl' title='$ti' value='{$srcr['repID']}' selected>{$srcr['Report']}</option>";
 					} else {
-						$wa.=  "<option value='{$srcr['repID']}'>{$srcr['Report']}</option>";
+						$wa.=  "<option class='$cl' title='$ti' value='{$srcr['repID']}'>{$srcr['Report']}</option>";
 					}		
 				}
 				$wa.= "</select></td></tr>";	
@@ -1283,13 +1373,15 @@ if ($selrep) {
 			$fncq = mysql_query($fncs,$repc);			
 			$selfunc=array('None','Add Functions');
 			//echo "$fncs <br>";
-			echo "🔷<select name='selfnc' onchange='this.form.submit()'>";
+			echo "🔷<select name='selfnc' id='selfnc' onchange='this.form.submit()'>";
+				
 				if ($selfnc=="None") {
 					echo "<option selected value='None'>None</option>";
 				} else {
 					echo "<option value='None'>None</option>";
 				}
 				
+				echo "<optgroup class='blue' label='Select Function'>";
 				while ($fncr = mysql_fetch_array($fncq , MYSQL_ASSOC)) {	
 					if ($selfnc==$fncr['fncID']) {
 						echo "<option value='{$fncr['fncID']}' selected>{$fncr['Funcn']}</option>";
@@ -1297,34 +1389,40 @@ if ($selrep) {
 						echo "<option value='{$fncr['fncID']}'>{$fncr['Funcn']}</option>";
 					}		
 				}
+				echo "</<optgroup>";
+				echo "<optgroup class='red' label='Action'>";
 				if ($selfnc=="Add Function") {
 					echo "<option class='red' selected value='Add Function'>Add Function</option>";
 				} else {
 					echo "<option class='red' value='Add Function'>Add Function</option>";
-				}		
+				}
+				echo "</<optgroup>";
 			echo "</select></td></tr>";			
 		} 	
 		
 		///////////// Changes selecttons ////////////////////////////////////////////////////////////////////////////////////////////////
 		
 		if ($selcomp=='Changes') {
-			$chgs="select chgID,Date,Done from RepChanges 
-				where repID='$selrep' or Date>=curdate()
-				group by chgID,Date,Done order by Date,chgID";
+			$chgs="select chgID,Date,Done,r.Report from RepChanges c
+					inner join Reports r on r.repID=c.repID
+				where c.repID='$selrep' 
+				group by chgID,Date,Done,r.Report order by Date,Report";
 			$chgq = mysql_query($chgs,$repc);	
 			
-			echo "🔷<select name='selchg' onchange='this.form.submit()'>";
+			echo "🔷<select name='selchg' id='selchg' onchange='this.form.submit()'>";
+				
 				if ($selchg=="None") {
 					echo "<option selected value='None'>None</option>";
 				} else {
 					echo "<option value='None'>None</option>";
 				}
+				echo "<optgroup class='red' label='Action'>";
 				if ($selchg=="Add Change") {
-					echo "<option class='red' selected value='Add Change'>Add Function</option>";
+					echo "<option selected value='Add Change'>Add Function</option>";
 				} else {
-					echo "<option class='red' value='Add Change'>Add Change</option>";
+					echo "<option value='Add Change'>Add Change</option>";
 				}	
-				
+				echo "<optgroup class='blue' label='Select Change'>";
 				while ($chgr = mysql_fetch_array($chgq , MYSQL_ASSOC)) {
 					if ($selchg==$chgr['chgID']) {
 						echo "<option value='{$chgr['chgID']}' selected>{$chgr['Date']}</option>";
@@ -1339,12 +1437,17 @@ if ($selrep) {
 
 			
 		if ($selcomp=='Tables') {
-			echo "🔷<select name='seltab' onchange='this.form.submit()'>";
+			echo "🔷<select name='seltab' id='seltab' onchange='this.form.submit()'>";
 				if ($seltab=="None") {
 					echo "<option selected value='None'>None</option>";
 				} else {
 					echo "<option value='None'>None</option>";
 				}
+				if ($seltab=="View DB") {
+					echo "<option selected>View DB</option>";
+				} else {
+					echo "<option>View DB</option>";
+				}				
 				if ($seltab=="Link Table") {
 					echo "<option class='red' selected value='Link Table'>Link Table</option>";
 				} else {
@@ -1359,12 +1462,13 @@ if ($selrep) {
 				$co=15;
 				$l=0;
 				$wa="";
+				echo "<optgroup class='blue' label='Table Name 🔷 Server 🔷 Database'>";
 				while ($tabr = mysql_fetch_array($tabq , MYSQL_ASSOC)) {
 
 					if ($seltab==$tabr['tabID']) {
-						echo "<option value='{$tabr['tabID']}' selected>{$tabr['TableName']} - {$tabr['Server']} - {$tabr['DB']}</option>";
+						echo "<option value='{$tabr['tabID']}' selected>{$tabr['TableName']} 🔷 {$tabr['Server']} 🔷 {$tabr['DB']}</option>";
 					} else {
-						echo "<option value='{$tabr['tabID']}'>{$tabr['TableName']} - {$tabr['Server']} - {$tabr['DB']}</option>";
+						echo "<option value='{$tabr['tabID']}'>{$tabr['TableName']} 🔷 {$tabr['Server']} 🔷 {$tabr['DB']}</option>";
 					}
 				}
 			echo "</select></th></tr>";
@@ -1483,8 +1587,6 @@ if ($selrep) {
 		
 	}  	
 	if ($selcomp=='Schedules' && $selsched && $selsched != 'None') {
-	
-		//tr
 		if (!$selsrc) {
 			$selsrc="None";
 		}
@@ -1524,41 +1626,53 @@ if ($selrep) {
 				$perr = mysql_fetch_array($perq , MYSQL_ASSOC);
 				
 				if ($dbcr['DB']=="IOtel") { 
-					$recs="select Name as nme,contact_email,period as frequency,runDate,Report from IOtel.recipients where IsActive and Report='{$srcr['repGroup']}' and period like '%{$perr['period']}%'";
+				
+					$wa=" (period like '%{$perr['period']}%'";
+					
+					if ($perr['period']=='da') {
+						$wa.=" or period like '%mtd%'";
+						
+					}
+					
+					$wa.=")";
+					
+					$recs="select Name as nme,contact_email,period as frequency,runDate,Report,IsActive from IOtel.recipients where Report='{$srcr['repGroup']}' and $wa";
+					
 				} else if ($dbcr['DB']=="nTwineSum") {
-					$recs="select Name as nme,contact_email,frequency,runDate,Report from nTwineSum.nTwineRecipients where IsActive and Report='{$srcr['repGroup']}' and frequency like '%{$perr['period']}%'";
+					$recs="select Name as nme,contact_email,frequency,runDate,Report,IsActive from nTwineSum.nTwineRecipients where Report='{$srcr['repGroup']}' and frequency like '%{$perr['period']}%'";
 				} else {
 					$recs="select concat(firstname,' ',lastname) as nme,email,am.id from nTwineSum.accountmanager am order by lastname, am.firstname";
 				}
+				
 			}	
 			$recq = mysql_query($recs,$repc);
 			
 			echo "<thead>";	
 			
-			echo "<tr><th><select name='selnam' onchange='this.form.submit()'>";	
-			
-			while ($recr = mysql_fetch_array($recq , MYSQL_ASSOC)) {
 				
+			$ls="";
+			while ($recr = mysql_fetch_array($recq , MYSQL_ASSOC)) {
+				$wa = $recr['IsActive'] ? ' 😊 Active' : ' 😒 Incative';
 				if ($selsrc==31) {
 					if (!$selnam || $selnam==$recr['id']) {
 						$selnam=$recr['id'];
-					echo "<option value='{$recr['id']}' selected>{$recr['nme']}</option>";
+						$ls.= "<option value='{$recr['id']}' selected>{$recr['nme']} $wa</option>";
 					} else {
-						echo "<option value='{$recr['id']}'>{$recr['nme']}</option>";
+						$ls.=  "<option value='{$recr['id']}'>{$recr['nme']} $wa</option>";
 					}
 				} else {
 					if (!$selnam || $selnam==$recr['nme']) {
 						$selnam=$recr['nme'];
 						$emls=explode(',',$recr['contact_email']);
-						echo "<option selected>{$recr['nme']}</option>";
+						$ls.=  "<option value='{$recr['nme']}' selected>{$recr['nme']} $wa</option>";
 					} else {
-						echo "<option>{$recr['nme']}</option>";
+						$ls.=  "<option value='{$recr['nme']}'>{$recr['nme']} $wa</option>";
 					}					
 				}
 					
 			}	
-		
-			echo "</select></th></tr></thead>";
+			
+			echo  "<tr><th><select name='selnam' onchange='this.form.submit()'>$ls</select></th></tr></thead>";
 			
 			echo "<tbody>";	
 			
@@ -1577,7 +1691,7 @@ if ($selrep) {
 			}
 			echo "</tbody>";
 
-		} else  {
+		} else  { // sched*
 			
 			echo "<table class='sched'><thead>";
 			if ($selsched=='Add Schedule') { 
@@ -1586,19 +1700,6 @@ if ($selrep) {
 			$schrs="select * from Schedules where schedID='$selsched'";
 			//echo "<tr><th colspan='2'>selsched $selsched updtsch $updtsch</th></tr>";
 			$schrq = mysql_query($schrs,$repc);	
-/*
-		foreach ($ntr as $k => $v) {
-			if ($k=='name' || $k=='code' || $k=='addr1' 
-					|| $k == 'addr2' || $k == 'addr3'|| $k == 'addr4') {
-				$v=str_replace("'","\'",$v);
-			}			
-			if (!$va) {
-				$va="'$v'";
-			} else {
-				$va.=",'$v'";
-			}
-		}
-*/		
 			
 			if ($schr = mysql_fetch_array($schrq , MYSQL_ASSOC)) {
 				if ($selsrc == "None") {
@@ -1635,17 +1736,26 @@ if ($selrep) {
 					$wa.="</select>";
 					echo "<tr><th>Destination Type</th><td>$wa</td></tr>";
 					echo "<tr><th>runTime</th><td><input type='time' name='runtime' value='{$schr['runTime']}' /></td></tr>";
-					$dtls="select s.Recurrence from Schedules s group by s.Recurrence order by Recurrence";
-					$dtlq = mysql_query($dtls,$repc);
-					$wa="<select name='recurrence'>";
-					while ($dtlr = mysql_fetch_array($dtlq , MYSQL_ASSOC)) {
-						if ($recurrence==$dtlr['Recurrence']) {
-							$wa.="<option selected>{$dtlr['Recurrence']}</option>";
-						} else {
-							$wa.="<option>{$dtlr['Recurrence']}</option>";
-						}
-					} 
-					$wa.="</select>";
+					$ch="";
+					if ($newrecurrence) {
+						$ch='checked';
+					}
+					if ($newrecurrence) {
+						$wa="<input type='text' size='60' name='recurrence' value='$recurrence' />";
+					} else {					
+						$dtls="select s.Recurrence from Schedules s group by s.Recurrence order by Recurrence";
+						$dtlq = mysql_query($dtls,$repc);
+						$wa="<select name='recurrence'>";
+						while ($dtlr = mysql_fetch_array($dtlq , MYSQL_ASSOC)) {
+							if ($recurrence==$dtlr['Recurrence']) {
+								$wa.="<option selected>{$dtlr['Recurrence']}</option>";
+							} else {
+								$wa.="<option>{$dtlr['Recurrence']}</option>";
+							}
+						} 
+						$wa.="</select>";
+					}
+					$wa.="<input $ch type='checkbox' name='newrecurrence' onchange='this.form.submit()' />";
 					echo "<tr><th>Recurrence Type</th><td>$wa</td></tr>";
 					echo "<tr><th>Filters</th><td><textarea name='filtersched'>{$schr['Filters']}</textarea></td></tr>";					
 					echo "<tr><th>Parameters</th><td><textarea name='parameters'>{$schr['Parameters']}</textarea></td></tr>";			
@@ -1684,7 +1794,10 @@ if ($selrep) {
 					}
 					$wa.="</select>";
 					echo "<tr><th>Format</th><td>$wa</td></tr>";
-					echo "<tr><th>Destination Report</th><td><textarea name='destreport'>$destsrc</textarea></td></tr>";					
+					echo "<tr><th>Destination Report</th><td><textarea name='destreport'>$destsrc</textarea></td></tr>";	
+					//echo "<tr><th colspan='2'><textarea>$updts</textarea><th><tr>";
+					//echo "<tr><th colspan='2'><textarea>$updts1</textarea><th><tr>";
+					//echo "<tr><th colspan='2'><textarea>$updts2</textarea><th><tr>";
 					echo "</tbody><tfoot><tr><th></th><th colspan='2'><input title='$su' type='submit' name='updtsched' value='Update Schedule' </th></tr>";
 					echo "<tr><th>Action</th><td><select name='updtsch' onchange='this.form.submit()'>";
 					if ($updtsch=="None") {
@@ -1723,17 +1836,19 @@ if ($selrep) {
 						echo "<option selected>None</option>";
 					} else {
 						echo "<option>None</option>";
-					}			
-					if ($updtsch=="Edit Schedule") {
-						echo "<option class='red' selected>Edit Schedule</option>";
-					} else {
-						echo "<option class='red'>Edit Schedule</option>";
-					}
-					if ($updtsch=="Remove Schedule") {
-						echo "<option class='red' selected>Remove Schedule</option>";
-					} else {
-						echo "<option class='red'>Remove Schedule</option>";
-					}	
+					}		
+					//if (!$selsrc || $selsrc=="None") {
+						if ($updtsch=="Edit Schedule") {
+							echo "<option class='red' selected>Edit Schedule</option>";
+						} else {
+							echo "<option class='red'>Edit Schedule</option>";
+						}
+						if ($updtsch=="Remove Schedule") {
+							echo "<option class='red' selected>Remove Schedule</option>";
+						} else {
+							echo "<option class='red'>Remove Schedule</option>";
+						}	
+					//}
 					echo "</select></td></tr>";				
 				}
 				
@@ -1858,7 +1973,7 @@ if ($selrep) {
 			}
 			$tlq = mysql_query($tls,$repc);
 			if ($tlr = mysql_fetch_array($tlq , MYSQL_ASSOC)) {
-				$wa= "<tr><td><input type='checkbox' name='taglnk' value='{$tagr['tagID']}' checked onchange='this.form.submit()' />{$tagr['Tag']}</td>";		
+				$wa= "<tr><td class='blue'><input type='checkbox' name='taglnk' value='{$tagr['tagID']}' checked onchange='this.form.submit()' />{$tagr['Tag']}</td>";		
 				//if ($updttag) {
 				//	$wa.="<td><input type='radio' name='remtag'  onchange='this.form.submit()' /></td></tr>";
 				//} else {
@@ -1866,6 +1981,7 @@ if ($selrep) {
 				//}
 								
 			} else {
+				
 				$wa= "<tr><td $cl><input type='checkbox' name='taglnk' value='{$tagr['tagID']}' onchange='this.form.submit()'  />{$tagr['Tag']}</td>";		
 				if ($updttag) {
 					if ($cl) {
@@ -1893,13 +2009,17 @@ if ($selrep) {
 	if ($selcomp=='Changes') {		
 		if ($selchg) {
 			echo "<table class='sched'>";
-			$schrs="select * from RepChanges where chgID='$selchg'";
+			//$schrs="select * from RepChanges where chgID='$selchg'";
+			$schrs="select chgID,Date,Done,r.Report,c.Description from RepChanges c
+					inner join Reports r on r.repID=c.repID
+						where c.chgID='$selchg'";
 			//echo "$schrs <br>";
 			$schrq = mysql_query($schrs,$repc);
 			if ($schr = mysql_fetch_array($schrq , MYSQL_ASSOC)) {
 				echo "<thead><tr><th>ID</th><th>$selchg</th></tr></thead>";
-				
-				echo "<tr><th>Done</th><th>{$schr['Done']}</th></tr>";
+				echo "<tr><th>Report</th><th>{$schr['Report']}</th></tr>";
+				$wa = $schr['Done'] ? "Done" : "Not done";
+				echo "<tr><th>Completed</th><th>$wa</th></tr>";
 				echo "<tr><th>Description</th><td><textarea>{$schr['Description']}</textarea></td></tr>";	
 
 			}
@@ -1953,7 +2073,7 @@ if ($selrep) {
 		
 	if ($selcomp=='Tables') {
 		
-		if ($seltab && $seltab != "None" && $seltab != "Link Table") { 
+		if ($seltab && $seltab != "None" && $seltab != "Link Table" && $seltab  != "View DB" ) { 
 			$schrs="select t.tabID,t.TableName,d.Server,d.DB,d.Type,t.timestamp,Input from TableLinks l
 						inner join TableDet t on t.tabID=l.tabID
 						inner join DatabaseDet d on d.dbID=t.dbID
@@ -1994,12 +2114,12 @@ if ($selrep) {
 			echo "</table>";
 		}
 		
-		if ($seltab=="Link Table") {
+		if ($seltab=="Link Table" || $seltab=="View DB") {
 			$tls="select t.* from TableLinks l
 					inner join TableDet t on t.tabID=l.tabID
 					where repID=$selrep";
 			$tlq = mysql_query($tls,$repc);
-			echo "<table class='tabl'>";
+			
 			$dbl=[];
 			$tbl=[];
 			while ($tlr = mysql_fetch_array($tlq , MYSQL_ASSOC)) {
@@ -2013,10 +2133,10 @@ if ($selrep) {
 					array_push($tbl, $tlr['tabID']);	
 				}				
 			}
-
-			$dbs="select * from DatabaseDet order by Server,DB";	
+			$dbs="select * from DatabaseDet order by Server,DB";
 			$dbq = mysql_query($dbs,$repc);
 			$cnt= count($tbl);
+			echo "<table class='tabl'>";
 			echo "<thead>";
 			//echo "<tr><th>seldb $seldb - tlr {$tlr['dbID']} - cnt $cnt - tbl {$tlr['tabID']}<th><tr>";
 			echo "<tr><td><select name='seldb' onchange='this.form.submit()'>";
@@ -2039,14 +2159,42 @@ if ($selrep) {
 					echo "<option $cl value='{$dbr['dbID']}'>{$dbr['Server']} - {$dbr['DB']}</option>";
 				}
 			}
-			echo "</select></td></tr></thead><tbody>";
+			echo "</select></td></tr></thead>";
 			if ($seldb=="Add DB") {
-				echo "<tr><th>DB</th><td></td></tr>";
-				echo "<tr><th>IP</th><td></td></tr>";
-				echo "<tr><th>Server</th><td>??<input type='checkbox' /></td></tr>";
-				echo "<tr><th>Type</th><td>??<input type='checkbox' /></td></tr>";
-				echo "<tr><th>Description</th><td></td></tr>";
-				
+				echo "<tbody class='updt'><tr><th>DB</th><td><input type='text' name='db' value='$db' /></td></tr>";
+				echo "<tr><th>IP</th><td><input type='text' name='ip' value='$ip' /></td></tr>";
+				echo "<tr><th>Server</th><td><input type='text' name='server' value='$server' /></td></tr>";
+				echo "<tr><th>Type</th><td>";
+
+				$ch='';
+				if ($newDBtype) {
+					echo "<input type='text' name='dbType' value='$dbType'";
+				} else {
+					echo "<select name='dbType'>";
+					$dbts="select Type from DatabaseDet group by Type";
+					$dbtq = mysql_query($dbts,$repc);
+					while ($dbtr = mysql_fetch_array($dbtq , MYSQL_ASSOC)) {
+						if(!$dbType || $dbType==$dbtr['Type']) {
+							echo "<option selected>{$dbtr['Type']}</option>";
+						} else {
+							echo "<option>{$dbtr['Type']}</option>";
+						}
+					}						
+					echo "</select>";
+				}
+				echo "<input $ch type='checkbox' name='newDBtype' onchange='this.form.submit()' /></td></tr>";
+				echo "<tr><th>Description</th><td><input type='text' name='description' value='$description' /></td></tr>";
+				echo "</tbody><tfoot><tr><th colspan='2'><input type='submit' name='addDB' value='Add DB'</th></tr></tfoot>";
+			} else if ($seltab=='View DB') {
+				$dbs = "select * from DatabaseDet where dbID='$seldb'";
+				$dbq = mysql_query($dbs,$repc);
+				$dbr = mysql_fetch_array($dbq , MYSQL_ASSOC);
+				echo "<tbody><tr><th>DB ID</th><td>{$dbr['dbID']}</td></tr>";
+				echo "<tr><th>DB</th><td>{$dbr['DB']}</td></tr>";
+				echo "<tr><th>IP</th><td>{$dbr['IP']}</td></tr>";
+				echo "<tr><th>Server</th><td>{$dbr['Server']}</td></tr>";
+				echo "<tr><th>Type</th><td>{$dbr['Type']}</td></tr>";
+				echo "<tr><th>Description</th><td>{$dbr['Descr']}</td></tr>";				
 			} else {
 				$tbs="select * from TableDet where dbID=$seldb order by TableName";
 				$tbq = mysql_query($tbs,$repc);
@@ -2084,8 +2232,10 @@ if ($selrep) {
 					$cb="checked";
 				}
 				echo "<tr><th>Remove Table: <input type='checkbox' $cb name='remtab'  onchange='this.form.submit()' /></th></tr>";
+				echo "</tfoot>";
+				
 			}
-			echo "</tfoot>";
+			
 			echo "</table>";
 		} 
 		
