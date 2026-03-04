@@ -2046,7 +2046,7 @@ if ($selrep) {
 echo "</div>"; // <<<<<<<<<<<<<<<<<< div d2 <<<<<<<<<<<<<<<<
 
 echo "</div>"; // d0
-//xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+//xxxxxxxxxxxxxxx
 ?>
 </form>
 <script>
