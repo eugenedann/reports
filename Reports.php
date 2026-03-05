@@ -249,6 +249,7 @@ $remtab = $_POST["remtab"];
 // Filters ////////////////////////////////////
 $filtype = $_POST["filtype"];
 $fildet = $_POST["fildet"];
+$filclr = $_POST["filclr"];
 // Schedules //////////////////////////////////// sched*
 $destType = $_POST["destType"];
 $recurrence = $_POST["recurrence"];
@@ -280,7 +281,11 @@ $fdestr = $_POST["fdestr"];
 $fpath = $_POST["fpath"];
 $ftstt = $_POST["ftstt"];
 $fts = $_POST["fts"];
-//fdestd
+$filrpty = $_POST["filrpty"];
+$fstatus = $_POST["fstatus"];
+$ftag = $_POST["ftag"];
+$fdb = $_POST["fdb"];
+//filrpty
 $repc = mysql_connect('192.168.110.17', 'crystal', '#Cry001#')
 	or die('Could not connect to .17: ' . mysql_error());
 mysql_select_db('Reports',$repc) or die('Could not select mor db');
@@ -401,42 +406,102 @@ $cb="";
 $flts="select * from ReportFilter";
 $fltq = mysql_query($flts,$repc);
 $fltr = mysql_fetch_array($fltq , MYSQL_ASSOC);
+
+
+
 $st="";
 if ($subfil=="Apply Filter") {
 	$upds="update ReportFilter set ";
 	if ($fltr['Report'] != $filrep) {
-		$st.= $st ? " ,Report='$filrep'" : "Report='$filrep'";		
-	} if ($fltr['destDetail'] != $fdestd) {
-		$st.= $st ? " ,destDetail='$fdestd'" : "destDetail='$fdestd'";		
-	} else if ($fltr['destReport'] != $fdestr) {
-		$st.= $st ? " ,destDetail='$fdestr'" : "destDetail='$fdestr'";		
+		$st.= $st ? " ,Report='$filrep'" : "Report='$filrep'";	
+		if ($filrep) {
+			$fdestd=$fdestr='';
+		}
+	} 
+	if ($fltr['destDetail'] != $fdestd) {
+		$st.= $st ? " ,destDetail='$fdestd'" : "destDetail='$fdestd'";	
+		if ($fdestd) {
+			$filrep=$fdestr='';
+		}		
+	} 
+	if ($fltr['destReport'] != $fdestr) {
+		$st.= $st ? " ,destDetail='$fdestr'" : "destDetail='$fdestr'";	
+		if ($fdestr) {
+			$filrep=$fdestd='';
+		}		
 	} 
 	if ($fltr['Path'] != $fpath) {
 		$st.= $st ? " ,Path='$fpath'" : "Path='$fpath'";				
 	}
 	if ($fltr['timestampType'] != $ftstt) {
-		$st.= $st ? " ,timestampType='$ftstt'" : "timestampType='$ftstt'";				
+		$st.= $st ? " ,timestampType='$ftstt'" : "timestampType='$ftstt'";	
+		if ($ftstt=="None") {
+			$fts='';
+		}
 	}
 	if ($fltr['Timestamp'] != $fts) {
 		$st.= $st ? " ,Timestamp='$fts'" : "Timestamp='$fts'";				
 	}
+	if ($fltr['reportType'] != $filrpty) {
+		$st.= $st ? " ,reportType='$filrpty'" : "reportType='$filrpty'";				
+	}	
+	if ($fltr['Status'] != $fstatus) {
+		$st.= $st ? " ,Status='$fstatus'" : "Status='$fstatus'";				
+	}	
+	if ($fltr['Tag'] != $ftag) {
+		$st.= $st ? " ,Tag='$ftag'" : "Tag='$ftag'";				
+	}	
+	if ($fltr['DB'] != $fdb) {
+		$st.= $st ? " ,DB='$fdb'" : "DB='$fdb'";				
+	}
 	if ($st) {
 		$upds.=$st;
-		
 		$updq = mysql_query($upds,$repc);
 		$selrep='';
 	}
+	
 }
-
+if ($filclr) {
+	$upds="update ReportFilter 
+	set reportType='Crystal'
+	, Report=''
+	, destDetail=''
+	, destReport=''
+	, Path=''
+	, Recurrence=''
+	, timestampType='None'
+	, Timestamp=''
+	, Status='Active'
+	, Tag='None'
+	, DB=''
+	, `Table`=''
+	, Filter='reportType'";
+	$updq = mysql_query($upds,$repc);
+	//$filtype='reportType';	
+	//$fildet='Crystal';
+	//$selcomp="Schedules";
+	$selrep='';
+}  
 $fltq = mysql_query($flts,$repc);
 $fltr = mysql_fetch_array($fltq , MYSQL_ASSOC);	
+
+$fi="Report={$fltr['Report']} &#13";
+$fi.="destDetail={$fltr['destDetail']} &#13";
+$fi.="destReport={$fltr['destReport']} &#13";
+$fi.="Path={$fltr['Path']} &#13";
+$fi.="timestampType={$fltr['timestampType']} &#13";
+$fi.="Timestamp={$fltr['Timestamp']} &#13";
+$fi.="reportType={$fltr['reportType']} &#13";
+$fi.="Status={$fltr['Status']} &#13";
+$fi.="Tag={$fltr['Tag']} &#13";
+$fi.="DB={$fltr['DB']} &#13";
 $tpeList='';
 $tpes="select ReportType from Reports group by ReportType";
 $tpeq = mysql_query($tpes,$repc);
 
 function lists() {
 	global $repc,$lstRepType,$lstPath,$lstStatus
-			,$lstDB,$lstdbType,$lstServer,$lstFormat,$lstTabInput,$lstRecurrence,$lstSource;
+			,$lstDB,$lstdbType,$lstServer,$lstFormat,$lstTabInput,$lstRecurrence,$lstSource,$lstTag;
 
 	$lsts="select 
 		r.ReportType
@@ -450,6 +515,7 @@ function lists() {
 		,l.Input
 		,s.Recurrence
 		,r.Source
+		,tg.Tag
 		from Reports r 
 		left join TableLinks l on l.repID=r.repID 
 		left join TableDet t on t.tabID=l.tabID 
@@ -471,7 +537,8 @@ function lists() {
 		,s.Formats
 		,l.Input
 		,s.Recurrence
-		,r.Source";	
+		,r.Source
+		,tg.Tag";	
 	$lstq = mysql_query($lsts,$repc);
 	$lstRepType=[];
 	$lstPath=[];
@@ -483,6 +550,7 @@ function lists() {
 	$lstTabInput=[];
 	$lstRecurrence=[];
 	$lstSource=[];
+	$lstTag=[];
 	while ($lstr = mysql_fetch_array($lstq , MYSQL_ASSOC)) {
 		if (!in_array($lstr['ReportType'], $lstRepType)) {
 			array_push($lstRepType, $lstr['ReportType']);	
@@ -513,10 +581,15 @@ function lists() {
 		}	
 		if ($lstr['Source'] && !in_array($lstr['Source'], $lstSource)) {
 			array_push($lstSource, $lstr['Source']);	
+		}
+	//echo count($lstTag).">>> {$lstr['Tag']} <<<< <br>";
+		if ($lstr['Tag'] && !in_array($lstr['Tag'], $lstTag)) {
+			array_push($lstTag, $lstr['Tag']);	
 		}		
 	}
 	
 }
+
 lists();
 //echo "** count ".count($lstSource)." -- {$lstSource[0]}<br>"; 
 function freport($n) {
@@ -564,7 +637,7 @@ function freport($n) {
 	//	$wr.=" where ReportType = 'Crystal' ";
 	//}
 		
-	if ($fltr['timestampType']) {
+	if ($fltr['timestampType'] && $fltr['timestampType'] != 'None') {
 	
 		$sts=$fltr['timestampType']; 
 		if ($sts=="Reports") {	
@@ -631,7 +704,7 @@ function freport($n) {
 			$wr = " where Path like '%{$fltr['Path']}%' ";
 		}
 	} 	
-	if ($fltr['DB']) {
+	if ($fltr['DB'] && $fltr['DB'] != 'None') {
 		if ($wr) {
 			$wr .= " and t.dbID = {$fltr['DB']} ";
 		} else {
@@ -648,7 +721,7 @@ function freport($n) {
 		}
 	} 	
 
-	if ($fltr['Tag']) {
+	if ($fltr['Tag'] && $fltr['Tag'] != 'None') {
 		if ($wr) {
 			$wr .= " and Tag = '{$fltr['Tag']}' ";
 		} else {
@@ -704,7 +777,7 @@ if ($selrep=='filters') {
 echo "";
 
 echo "</th></tr>";
-echo "<tr><th>▽<input $ch type='radio' name='selrep' value='filters' onchange='this.form.submit()' />Filter Reportecho <textarea>$upds</textarea>";
+echo "<tr><th title='$fi'>▽<input $ch type='radio' name='selrep' value='filters' onchange='this.form.submit()' />Filter Report";
 
 echo "</thead>";
 //echo "<tr><th><span title='$ti'>Report Filter:</span> <select name='filtype' id='filtype'  onchange='test()'>$wa</td></tr>";
@@ -747,10 +820,9 @@ if ($selrep) {
 		echo "<tr><th>Path</th><td><input type='text' name='fpath' value='{$fltr['Path']}' /></td></tr>";
 		echo "<tr><th>Recurrence</th><td>{$fltr['Recurrence']}</td></tr>";
 		
-		$tstl=['Reports','Schedules','Functions','RepChanges','DatabaseDet','TableDet','SQLstatements'];
+		$tstl=['None','Reports','Schedules','Functions','RepChanges','DatabaseDet','TableDet','SQLstatements'];
 		
-		$wa="<select name='ftstt'>";
-		
+		$wa="<select name='ftstt'>";		
 		for ($i=0;$i<count($tstl);$i++) {
 			if ($fltr['timestampType']==$tstl[$i]) {
 				$wa.="<option selected>{$tstl[$i]}</option>";
@@ -764,15 +836,67 @@ if ($selrep) {
 		echo "<tr><th>timestampType</th><td>$wa</td></tr>";
 		echo "<tr><th>Timestamp</th><td><input type='text' name='fts' value='{$fltr['Timestamp']}' /></td></tr>";
 		//echo "<tr><th>Timestamp</th><td>{$fltr['Timestamp']}</td></tr>";
-		echo "<tr><th>reportType</th><td>{$fltr['reportType']}</td></tr>";
-		echo "<tr><th>Status</th><td>{$fltr['Status']}</td></tr>";
-		echo "<tr><th>Tag</th><td>{$fltr['Tag']}</td></tr>";
-		echo "<tr><th>DB</th><td>{$fltr['DB']}</td></tr>";
-		echo "<tr><th>Table</th><td>{$fltr['Table']}</td></tr>";
+		echo "<tr><th>reportType</th><td><select name='filrpty'>";
+		for($i=0;$i<count($lstRepType);$i++) {
+			if ($fltr['reportType']==$lstRepType[$i]) {
+				echo "<option selected>{$lstRepType[$i]}</option>";
+			} else {
+				echo "<option>{$lstRepType[$i]}</option>";
+			}
+		}
+		//lstRepType
+		//echo "<tr><th>reportType</th><td>{$fltr['reportType']}</td></tr>";
+		echo "<tr><th>Status</th><td><select name='fstatus'>";
+
+		for($i=0;$i<count($lstStatus);$i++) {
+			if ($fltr['Status']==$lstStatus[$i]) {
+				echo "<option selected>{$lstStatus[$i]}</option>";
+			} else {
+				echo "<option>{$lstStatus[$i]}</option>";
+			}
+		}		
+		//echo "<tr><th>Status</th><td>{$fltr['Status']}</td></tr>";
+		//echo "<tr><th>tag  count</th><td>".count($lstTag)."</td></tr>";
+		echo "<tr><th>Tag</th><td><select name='ftag'>";
+		if (!$fltr['Tag'] || $fltr['Tag']=='None') {
+			echo "<option selected>None</option>";
+		} else {
+			echo "<option>None</option>";
+		}		
+		for($i=0;$i<count($lstTag);$i++) {
+			if ($fltr['Tag']==$lstTag[$i]) {
+				echo "<option selected>{$lstTag[$i]}</option>";
+			} else {
+				echo "<option>{$lstTag[$i]}</option>";
+			}
+		}	
+
+		echo "<tr><th>DB</th><td><select name='fdb'>";
+		if (!$fltr['DB'] || $fltr['DB']=='None') {
+			echo "<option selected>None</option>";
+		} else {
+			echo "<option>None</option>";
+		}	
+					
+		for($i=0;$i<count($lstDB);$i++) {
+			$dbls="select * from DatabaseDet where dbID='{$lstDB[$i]}'";
+			$dblq = mysql_query($dbls,$repc);
+			$dblr = mysql_fetch_array($dblq , MYSQL_ASSOC);
+			if ($fltr['DB']==$lstDB[$i]) {
+				
+				echo "<option selected value='{$dblr['dbID']}'>{$dblr['DB']} - {$dblr['Server']}</option>";
+			} else {
+				echo "<option value='{$dblr['dbID']}'>{$dblr['DB']} - {$dblr['Server']}</option>";
+			}
+		}		
+		echo "<tr><th>DB st</th><td>$sw <<>> $fdb</td></tr>";
+		//echo "<tr><th>DB</th><td>{$fltr['DB']}</td></tr>";
+		//echo "<tr><th>Table</th><td>{$fltr['Table']}</td></tr>";
 		//echo "<tr><th>Filter</th><td>{$fltr['Filter']}</td></tr>";		
 		echo "</tbody><tfoot>";
-		echo "<tr><th colspan='2'>$upds</th></tr>";
-		echo "<tr><th colspan='2'><input type='submit' name='subfil' value='Apply Filter' /></th></tr>";
+		//echo "<tr><th colspan='2'>$upds</th></tr>";
+		echo "<tr><th colspan='2'><input type='submit' name='subfil' value='Apply Filter' />";
+		echo "<input type='submit' name='filclr' value='Reset Filters' /></th></tr>";
 		echo"</tfoot></table>";
 	} else {
 		$rsel="select * from Reports where repID='$selrep'";
@@ -2046,7 +2170,7 @@ if ($selrep) {
 echo "</div>"; // <<<<<<<<<<<<<<<<<< div d2 <<<<<<<<<<<<<<<<
 
 echo "</div>"; // d0
-//xxxxxxxxxxxxxxx
+//xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ?>
 </form>
 <script>
