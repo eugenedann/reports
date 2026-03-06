@@ -212,12 +212,12 @@ function test() {
 ///////// T1 ///////////////
 $selrep = $_POST["selrep"];
 $filrep = $_POST["filrep"];
-$filters = $_POST["filters"];
+//$filters = $_POST["filters"];
 //$seltype = $_POST["seltype"];
 $selsched = $_POST["selsched"];
 $selcomp = $_POST["selcomp"];
 $selfnc = $_POST["selfnc"];
-$seltag = $_POST["seltag"];
+//$seltag = $_POST["seltag"];
 $selchg = $_POST["selchg"];
 $selsql = $_POST["selsql"];
 $seltab = $_POST["seltab"];
@@ -228,13 +228,14 @@ $updttag = $_POST["updttag"];
 $remtag = $_POST["remtag"];
 $taglnk = $_POST["taglnk"];
 $subrep = $_POST["subrep"];
-$selsbr = $_POST["selsbr"];
+//$selsbr = $_POST["selsbr"];
 $selpub = $_POST["selpub"];
 $seldb = $_POST["seldb"];
 $selsrc = $_POST["selsrc"];
 $selnam = $_POST["selnam"];
-$timestl = $_POST["timestl"];
+//$timestl = $_POST["timestl"];
 // update or add report* ///////////////////////
+$report = $_POST["report"];
 $status = $_POST["status"];
 $type = $_POST["type"];
 $source = $_POST["source"];
@@ -247,8 +248,8 @@ $path = $_POST["path"];
 //table actions
 $remtab = $_POST["remtab"];
 // Filters ////////////////////////////////////
-$filtype = $_POST["filtype"];
-$fildet = $_POST["fildet"];
+//$filtype = $_POST["filtype"];
+//$fildet = $_POST["fildet"];
 $filclr = $_POST["filclr"];
 // Schedules //////////////////////////////////// sched*
 $destType = $_POST["destType"];
@@ -269,7 +270,7 @@ $ip = $_POST["ip"];
 $server = $_POST["server"];	
 $dbType = $_POST["dbType"];	
 $newDBtype = $_POST["newDBtype"];	
-$description = $_POST["description"];	
+//$description = $_POST["description"];	
 $addDB = $_POST["addDB"];
 // Table
 $newtab = $_POST["newtab"];	
@@ -285,6 +286,7 @@ $filrpty = $_POST["filrpty"];
 $fstatus = $_POST["fstatus"];
 $ftag = $_POST["ftag"];
 $fdb = $_POST["fdb"];
+$frecurrence = $_POST["frecurrence"];
 //filrpty
 $repc = mysql_connect('192.168.110.17', 'crystal', '#Cry001#')
 	or die('Could not connect to .17: ' . mysql_error());
@@ -310,6 +312,8 @@ if ($newtab) {
 $ru="";
 
 if ($subrep) {
+	$ru.="report &#13";
+	$ru.="$report &#13";
 	$ru.="status &#13";
 	$ru.="$status &#13";
 	$ru.="type &#13";
@@ -322,6 +326,7 @@ if ($subrep) {
 	$ru.="$filter  &#13";
 	if ($subrep=="Edit Report") {
 		$updts="update Reports set 
+				Report='$report',
 				Description='$description',
 				Status='$status',
 				ReportType='$type',
@@ -330,6 +335,7 @@ if ($subrep) {
 				Filters='$filter'
 			where repID='$selrep'";
 		$updq = mysql_query($updts,$repc);	
+		$selcomp="";
 		//echo "$updts <br>";
 	}
 }
@@ -453,6 +459,9 @@ if ($subfil=="Apply Filter") {
 	}	
 	if ($fltr['DB'] != $fdb) {
 		$st.= $st ? " ,DB='$fdb'" : "DB='$fdb'";				
+	}
+	if ($fltr['Recurrence'] != $frecurrence) {
+		$st.= $st ? " ,Recurrence='$frecurrence'" : "Recurrence='$frecurrence'";				
 	}
 	if ($st) {
 		$upds.=$st;
@@ -582,10 +591,9 @@ function lists() {
 		if ($lstr['Source'] && !in_array($lstr['Source'], $lstSource)) {
 			array_push($lstSource, $lstr['Source']);	
 		}
-	//echo count($lstTag).">>> {$lstr['Tag']} <<<< <br>";
 		if ($lstr['Tag'] && !in_array($lstr['Tag'], $lstTag)) {
 			array_push($lstTag, $lstr['Tag']);	
-		}		
+		}			
 	}
 	
 }
@@ -713,7 +721,7 @@ function freport($n) {
 	}	
 	
 
-	if ($fltr['Recurrence']) {
+	if ($fltr['Recurrence'] && $fltr['Recurrence'] != 'None') {
 		if ($wr) {
 			$wr .= " and Recurrence = '{$fltr['Recurrence']}' ";
 		} else {
@@ -818,11 +826,31 @@ if ($selrep) {
 			echo "<tr><th>destReport</th><td><input type='text' name='fdestr' value='{$fltr['destReport']}' /></td></tr>";
 		}
 		echo "<tr><th>Path</th><td><input type='text' name='fpath' value='{$fltr['Path']}' /></td></tr>";
-		echo "<tr><th>Recurrence</th><td>{$fltr['Recurrence']}</td></tr>";
-		
-		$tstl=['None','Reports','Schedules','Functions','RepChanges','DatabaseDet','TableDet','SQLstatements'];
-		
-		$wa="<select name='ftstt'>";		
+		//echo "<tr><th>Recurrence</th><td>{$fltr['Recurrence']}</td></tr>";
+		echo "<tr><th>Recurrence</th><td><select name='frecurrence'>";
+		if (!$fltr['Recurrence'] || $fltr['Recurrence']=='None') {
+			echo "<option selected>None</option>";
+		} else {
+			echo "<option>None</option>";
+		}	
+		echo "<optgroup class='blue' label='Select Recurrence'>";			
+		for($i=0;$i<count($lstRecurrence);$i++) {
+			if ($fltr['Recurrence']==$lstRecurrence[$i]) {
+				
+				echo "<option selected>{$lstRecurrence[$i]}</option>";
+			} else {
+				echo "<option>{$lstRecurrence[$i]}</option>";
+			}
+		}		
+		echo "</select></td></tr>";		
+		$tstl=['Reports','Schedules','Functions','RepChanges','DatabaseDet','TableDet','SQLstatements'];
+		$wa="<select name='ftstt'>";
+		if (!$fltr['timestampType'] || $fltr['timestampType']=='None') {
+			$wa.= "<option selected>None</option>";
+		} else {
+			$wa.= "<option>None</option>";
+		}		
+		$wa.= "<optgroup class='blue' label='Select Timestamp Type'>";					
 		for ($i=0;$i<count($tstl);$i++) {
 			if ($fltr['timestampType']==$tstl[$i]) {
 				$wa.="<option selected>{$tstl[$i]}</option>";
@@ -837,6 +865,7 @@ if ($selrep) {
 		echo "<tr><th>Timestamp</th><td><input type='text' name='fts' value='{$fltr['Timestamp']}' /></td></tr>";
 		//echo "<tr><th>Timestamp</th><td>{$fltr['Timestamp']}</td></tr>";
 		echo "<tr><th>reportType</th><td><select name='filrpty'>";
+		echo "<optgroup class='blue' label='Select Report Type'>";
 		for($i=0;$i<count($lstRepType);$i++) {
 			if ($fltr['reportType']==$lstRepType[$i]) {
 				echo "<option selected>{$lstRepType[$i]}</option>";
@@ -844,25 +873,24 @@ if ($selrep) {
 				echo "<option>{$lstRepType[$i]}</option>";
 			}
 		}
-		//lstRepType
-		//echo "<tr><th>reportType</th><td>{$fltr['reportType']}</td></tr>";
+		echo "</select></td></tr>";
 		echo "<tr><th>Status</th><td><select name='fstatus'>";
-
+		echo "<optgroup class='blue' label='Select Status'>";
 		for($i=0;$i<count($lstStatus);$i++) {
 			if ($fltr['Status']==$lstStatus[$i]) {
 				echo "<option selected>{$lstStatus[$i]}</option>";
 			} else {
 				echo "<option>{$lstStatus[$i]}</option>";
 			}
-		}		
-		//echo "<tr><th>Status</th><td>{$fltr['Status']}</td></tr>";
-		//echo "<tr><th>tag  count</th><td>".count($lstTag)."</td></tr>";
+		}	
+		echo "</select></td></tr>";		
 		echo "<tr><th>Tag</th><td><select name='ftag'>";
 		if (!$fltr['Tag'] || $fltr['Tag']=='None') {
 			echo "<option selected>None</option>";
 		} else {
 			echo "<option>None</option>";
-		}		
+		}	
+		echo "<optgroup class='blue' label='Select Tag'>";
 		for($i=0;$i<count($lstTag);$i++) {
 			if ($fltr['Tag']==$lstTag[$i]) {
 				echo "<option selected>{$lstTag[$i]}</option>";
@@ -870,14 +898,14 @@ if ($selrep) {
 				echo "<option>{$lstTag[$i]}</option>";
 			}
 		}	
-
+		echo "</select></td></tr>";
 		echo "<tr><th>DB</th><td><select name='fdb'>";
 		if (!$fltr['DB'] || $fltr['DB']=='None') {
 			echo "<option selected>None</option>";
 		} else {
 			echo "<option>None</option>";
 		}	
-					
+		echo "<optgroup class='blue' label='Select Database'>";			
 		for($i=0;$i<count($lstDB);$i++) {
 			$dbls="select * from DatabaseDet where dbID='{$lstDB[$i]}'";
 			$dblq = mysql_query($dbls,$repc);
@@ -889,12 +917,8 @@ if ($selrep) {
 				echo "<option value='{$dblr['dbID']}'>{$dblr['DB']} - {$dblr['Server']}</option>";
 			}
 		}		
-		echo "<tr><th>DB st</th><td>$sw <<>> $fdb</td></tr>";
-		//echo "<tr><th>DB</th><td>{$fltr['DB']}</td></tr>";
-		//echo "<tr><th>Table</th><td>{$fltr['Table']}</td></tr>";
-		//echo "<tr><th>Filter</th><td>{$fltr['Filter']}</td></tr>";		
+		echo "</select></td></tr>";		
 		echo "</tbody><tfoot>";
-		//echo "<tr><th colspan='2'>$upds</th></tr>";
 		echo "<tr><th colspan='2'><input type='submit' name='subfil' value='Apply Filter' />";
 		echo "<input type='submit' name='filclr' value='Reset Filters' /></th></tr>";
 		echo"</tfoot></table>";
@@ -908,7 +932,10 @@ if ($selrep) {
 			}
 			
 			if ($selcomp=='Edit Report' || $selcomp=='Add Report' ) { // add report*
-				echo "<tr><th colspan='2'><input size='60' type='text' name='report' value='{$rselr['Report']}' /></th></tr></thead><tbody class='updt'>";
+				if (!$report && $selcomp=='Edit Report') {
+					$report=$rselr['Report'];
+				}
+				echo "<tr><th colspan='2'><input size='60' type='text' name='report' value='$report' required /></th></tr></thead><tbody class='updt'>";
 				$wa= "<select name='status'>"; 
 				//Status changes will effect all linked schedules of reports  //////////////////////////////////
 				$stals="select r.Status from Reports r group by r.Status order by r.Status";
@@ -922,7 +949,7 @@ if ($selrep) {
 				}
 				$wa.="</select>";
 				echo "<tr><th>Status</th><td>$wa</td></tr>";
-				
+				//input
 				//Type changes will effect linked reports of publications  //////////////////////////////////
 				if ($newtype) {
 					$wa="<input type='text' name='type' value='$type' />";
@@ -987,11 +1014,7 @@ if ($selrep) {
 				echo "<tfoot>";
 			} else {
 				echo "<tr><th colspan='2'>{$rselr['Report']}</th></tr></thead><tbody>";
-				$cl = "class=''";
-				if ($rselr['Status']!="Active") {
-					$cl = " class='red' ";
-				}
-				echo "<tr><th>Status</th><td $cl>{$rselr['Status']}</td></tr>";
+				echo "<tr><th>Status</th><td class='red'>{$rselr['Status']}</td></tr>";
 				echo "<tr><th>Path</th><td>{$rselr['Path']}</td></tr>";
 				echo "<tr><th>Source</th><td>{$rselr['Source']}</td></tr>";
 				echo "<tr><th>Description</th><td><textarea>{$rselr['Description']}</textarea></td></tr>";
@@ -1004,51 +1027,33 @@ if ($selrep) {
 					inner join Reports r on r.repID=s.repID
 					where l.RepID='$selrep'";
 			$srcq = mysql_query($srcs,$repc);
-	//$rselr['ReportType']	
-			//echo "<tr><th>seltype $seltype - reporttype {$rselr['ReportType']} cnt ".count($rselr)". ************ </th></tr>";		/////////////////////////////
-			//echo "<tr><th> xxx $selcomp **** $fildet yyyy {$rselr['ReportType']} aaa</th></tr
 			if (!$selsched) {
 				$selsched="None";
 			}
+			$compact=['Add Report','Edit Report','Remove Report'];
 			if ($rselr['ReportType']=='Crystal') {
 				$complist=['Schedules','Functions','Tags','Changes','SQLstatement','Tables'];
+				
 				if ($srcr = mysql_fetch_array($srcq , MYSQL_ASSOC)) {	
 					array_push($complist, 'Publications');	
 				}
-				if (!$selcomp) {
-					$selcomp='Schedules';
-				}				
+			
 			} else if ($rselr['ReportType']=='PHP')  {
-				$complist=['Schedules','Tags','Changes','Tables'];
-				if (!$selcomp) {
-					$selcomp='Schedules';
-				}			
+				$complist=['Schedules','Tags','Changes','Tables'];		
 			} else if ($rselr['ReportType']=='Publication' || $rselr['ReportType']=='sh')  {
-				$complist=['Schedules','Tags','Changes','Linked Reports'];
-				if (!$selcomp) {
-					$selcomp='Schedules';
-				}			
+				$complist=['Schedules','Tags','Changes','Linked Reports'];		
 			} else if ($rselr['ReportType']=='Recipients')  {
 				$complist=['Functions','Tags','Changes','Tables'];
 				if ($srcr = mysql_fetch_array($srcq , MYSQL_ASSOC)) {	
 					array_push($complist, 'Publications');	
-				}			
-				if (!in_array($selcomp, $complist)) {
-					$selcomp='Functions';
-				}	
-				if (!$selcomp) {
-					$selcomp='Functions';
 				}
-			} else if ($selcomp=="Edit Report") {
-				$complist=['Schedules','Functions','Tags','Changes','SQLstatement','Tables','Edit Report'];
-				if (!in_array($selcomp, $complist)) {
-					$selcomp='Schedules';
-				}				
-			} 
-			//sh, recipients, html
+			}				
 			echo "<tr><th></th><td><select name='selcomp' onchange='this.form.submit()'>";
 					echo "<optgroup class='blue' label='Select Component'>";
 					for ($i=0;$i<count($complist);$i++) {
+						if (!$selcomp) {
+							$selcomp=$complist[$i];
+						}
 						if ($selcomp==$complist[$i]) {
 							echo "<option selected>{$complist[$i]}</option>";
 						} else {
@@ -1057,22 +1062,15 @@ if ($selrep) {
 					}
 					echo "</optgroup>";
 					echo "<optgroup class='red' label='Action'>";
-					if ($selcomp=='Edit Report') {
-						echo "<option selected>Edit Report</option>";
-					} else {
-						echo "<option>Edit Report</option>";
+					for ($i=0;$i<count($compact);$i++) {
+						if ($selcomp==$compact[$i]) {
+							echo "<option selected>{$compact[$i]}</option>";
+						} else {
+							echo "<option>{$compact[$i]}</option>";
+						}
 					}
-					if ($selcomp=='Add Report') {
-						echo "<option selected>Add Report</option>";
-					} else {
-						echo "<option>Add Report</option>";
-					}	
-					if ($selcomp=='Remove Report') {
-						echo "<option selected>Remove Report</option>";
-					} else {
-						echo "<option>Remove Report</option>";
-					}	
-					echo "</optgroup>";
+					echo "</optgroup>";					
+
 			echo "</select>";
 			if ($selcomp=='Linked Reports') {
 				echo "🔷<input type='text' name='fltrep' value='$fltrep' onchange='this.form.submit()' />";
@@ -1092,7 +1090,7 @@ if ($selrep) {
 				$rmvq = mysql_query($rmvs,$repc);
 				$wa="";
 				if ($rmvr = mysql_fetch_array($rmvq , MYSQL_ASSOC)) {
-					$wa="<tr><th colspan='2' class='wrn'>Function will be delinked</th></tr>";
+					$wa.="<tr><th colspan='2' class='wrn'>Function will be delinked</th></tr>";
 				}
 				$rsel="select * from Schedules where repID=$selrep";
 				$rselq = mysql_query($rsel,$repc);
@@ -1715,7 +1713,7 @@ if ($selrep) {
 						echo "<tr><th>Recurrence</th><td>{$schr['Recurrence']}</td></tr>";
 						echo "<tr><th>Filters</th><td><textarea>{$schr['Filters']}</textarea></td></tr>";
 						echo "<tr><th>Parameters</th><td><textarea>{$schr['Parameters']}</textarea></td></tr>";			
-						echo "<tr><th>Status</th><td>{$schr['Status']}</td></tr>";
+						echo "<tr><th>Status</th><td class='red'>{$schr['Status']}</td></tr>";
 						echo "<tr><th>Destination Detail</th><td><textarea>{$schr['DestDetail']}</textarea></td></tr>";
 						$wa = $schr['Zipped'] ? 'Yes' : 'No';
 						echo "<tr><th>Zipped</th><td>$wa</td></tr>";
@@ -2170,7 +2168,7 @@ if ($selrep) {
 echo "</div>"; // <<<<<<<<<<<<<<<<<< div d2 <<<<<<<<<<<<<<<<
 
 echo "</div>"; // d0
-//xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
 ?>
 </form>
 <script>
