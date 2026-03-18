@@ -187,7 +187,12 @@ th, td {
 	color: black;
 }
 .grn {
-	color: green;
+	color: green;	
+}
+.hlph {
+	color: red;
+	background-color: lightblue;
+	text-align: center;
 }
 .wrn {
 	background-color: red;
@@ -200,31 +205,15 @@ th, td {
 
 </style>
 <script>
-function test() {
-	y=document.getElementById('seltab');
-	z=document.getElementById('selsched');
-	f=document.getElementById('selfnc');
-	c=document.getElementById('selchg');
-	s=document.getElementById('selcomp');
-	if (s) {
-		s.value='';
-	}
-	
-	if (y) {
-		y.value='None';
-	}	
-	if (z) {
-		z.value='None';
-	}
-	if (f) {
-		f.value='None';
-	}	
+
+function fcmpsel() {
+	let c=document.getElementById('cmpsel');
 	if (c) {
 		c.value='None';
 	}	
 
 	document.getElementById("subm").submit();
-	//selchg
+	//cmpsel
 }
 </script>
 </head>
@@ -251,8 +240,9 @@ function test() {
 	$procrepdel = $_POST["procrepdel"];
 	$rptlnk = $_POST["rptlnk"];
 	$replst = $_POST["replst"];
+	$cmpsel = $_POST["cmpsel"];
 //Schedules
-	$selsched = $_POST["selsched"];
+
 	$updtsch = $_POST["updtsch"];
 	$selsrc = $_POST["selsrc"];
 	$selnam = $_POST["selnam"];
@@ -271,7 +261,7 @@ function test() {
 // Components 
 	$selcomp = $_POST["selcomp"];
 // Functions
-	$selfnc = $_POST["selfnc"];
+
 	$updtfnc = $_POST["updtfnc"];
 	$isFnc = $_POST["isFnc"];
 	$fname = $_POST["fname"];
@@ -279,7 +269,6 @@ function test() {
 	$function = $_POST["function"];
 	$subfnc = $_POST["subfnc"];
 // Changes
-	$selchg = $_POST["selchg"];	
 	$date = $_POST["date"];	
 	$done = $_POST["done"];	
 	$subchg = $_POST["subchg"];	
@@ -287,10 +276,8 @@ function test() {
 	$dnechg = $_POST["dnechg"];	
 	
 // SQL
-	$selsql = $_POST["selsql"];
 	$updtsql = $_POST["updtsql"];
 // Tables
-	$seltab = $_POST["seltab"];
 	$remtab = $_POST["remtab"];
 // Publications
 	$selpub = $_POST["selpub"];
@@ -341,13 +328,13 @@ mysql_select_db('Reports',$repc) or die('Could not select mor db');
 				values('$r','0','$date','$description','Report')";
 		echo "$ins <br>";
 		$inq = mysql_query($ins,$repc);
-		$selchg="";
+		$cmpsel="";
 	}
 	if ($dnechg) {
 		$ups="update RepChanges set Done='1' where chgID='$dnechg'";
 		//echo "$ups <br>";
 		$upq = mysql_query($ups,$repc);
-		$selchg="";
+		$cmpsel="";
 	}
 // >>>> Tag updates <<<<
 
@@ -409,7 +396,7 @@ $ad ="";
 			//echo "$ins <br>";
 			
 		}
-		//$seltab="";
+		//$cmpsel="";
 	}
 
 // >>>> SQL updates <<<<
@@ -493,7 +480,7 @@ $ad ="";
 		$su.="newrecurrence &#13";
 		$su.="$newrecurrence  &#13";
 		$su.="&#13 selsrc= $selsrc ";
-		//echo "$updtsched $selsched<br>";	
+		//echo "$updtsched $cmpsel<br>";	
 		$za=0;
 		if ($zipped) {
 			$za=1;
@@ -509,13 +496,13 @@ $ad ="";
 				$updts1="update Schedules set 
 							Formats='$format',
 							DestReport='$destreport'	
-						where schedID='$selsched'";
+						where schedID='$cmpsel'";
 				$updq = mysql_query($updts1,$repc);
 			} else {
 				$updts2="update SourceLink set 
 							DestRepName='$destreport',
 							Format='$format'
-						where RepID=$selsrc and schID='$selsched'";					
+						where RepID=$selsrc and schID='$cmpsel'";					
 				$updq = mysql_query($updts2,$repc);			
 			}
 
@@ -529,7 +516,7 @@ $ad ="";
 						Status='$status',
 						Zipped=$za,
 						MergedPDF=$ma	
-					where schedID='$selsched'";
+					where schedID='$cmpsel'";
 				
 			$updq = mysql_query($updts,$repc);
 			//echo "<p>$updts2</p>";
@@ -543,10 +530,10 @@ $ad ="";
 			$inq = mysql_query($ins,$repc);
 		}
 		if ($updtsched == "Remove Schedule") {
-			echo "Remove Schedule $selsched<br>";
-			$dels="delete from Schedules where schedID=$selsched";
+			echo "Remove Schedule $cmpsel<br>";
+			$dels="delete from Schedules where schedID=$cmpsel";
 			$dels = mysql_query($dels,$repc);
-			$selsched="None";
+			$cmpsel="None";
 		}
 		$updtsch="None";
 	}
@@ -575,16 +562,16 @@ $ad ="";
 					`Function`='$fncn',
 					CustomFunction='$cfunction',
 					isCF='$fn'
-				where fncID=$selfnc";
+				where fncID=$cmpsel";
 			//echo "$ups <br>";
 			$upq = mysql_query($ups,$repc);
 		}
 		if ($subfnc=="Remove Function") {
-			$dels="delete from Functions where fncID='$selfnc'";
+			$dels="delete from Functions where fncID='$cmpsel'";
 			$delq = mysql_query($dels,$repc);
 			//echo "$dels <br>";
 		}
-		$selfnc="None";
+		$cmpsel="None";
 	}
 //echo "$taglnk <br>";
 session_start();
@@ -692,7 +679,7 @@ $cb="";
 	$tpeq = mysql_query($tpes,$repc);
 
 // >>>> Functions <<<<
-//echo "selfnc $selfnc ** subfnc $subfnc <br>";
+//echo "cmpsel $cmpsel ** subfnc $subfnc <br>";
  
 	function lists() {
 		global $repc,$lstRepType,$lstPath,$lstStatus
@@ -967,13 +954,16 @@ $cb="";
 	if ($selrep=='filters') {
 		$ch='checked';
 	}
-	echo "";
+	$hp="";
+	if ($selrep=='hlptpe') {
+		$hp='checked';
+	}
 
 	echo "</th></tr>";
-	echo "<tr><th title='$fi'>▽<input $ch type='radio' name='selrep' value='filters' onchange='this.form.submit()' />Filter Report <span class='yel'>- ({$fltr['reportType']})</span>";
+	echo "<tr><th title='$fi'>▽<input $ch type='radio' name='selrep' value='filters' onchange='this.form.submit()' />Filter Report <span class='yel'>- ({$fltr['reportType']})</span></th><th class='hlph'>?<input type='radio' name='selrep' value='hlptpe' $hp onchange='this.form.submit()' /></th></tr>";
 
 	echo "</thead>";
-	//echo "<tr><th><span title='$ti'>Report Filter:</span> <select name='filtype' id='filtype'  onchange='test()'>$wa</td></tr>";
+
 	/////////////////////////////////////////////////// end FILTERS ////////////////////////////////////////
 
 	$tpes="select r.ReportType from Reports r group by r.ReportType order by r.ReportType";
@@ -986,7 +976,7 @@ $cb="";
 		if ($selrep==$repr['repID']) {
 			$selected="checked";
 		}
-		echo "<tr><td>$cnt<input type='radio' name='selrep' id='selrep' value='{$repr['repID']}' $selected onchange='test()' />{$repr['Report']}</td></tr>";
+		echo "<tr><td colspan='2'>$cnt<input type='radio' name='selrep' id='selrep' value='{$repr['repID']}' $selected onchange='fcmpsel()' />{$repr['Report']}</td></tr>";
 	}
 
 	echo "</tbody></table></div>"; // <<<<<<<<<<<<<<<< div d1 <<<<<<<<<<<<<<
@@ -997,6 +987,16 @@ echo "<div class='d2'>"; // <<<<<<<<<<<<<<<<< div d2 <<<<<<<<<<<<<<<<<<<
 if ($selrep) {
 	
 	/////// Report ///////////////////////////////////////////////////////////////////////////////////////////////////////
+	if ($selrep=='hlptpe') {
+	// >>>> Report Type Help <<<<
+		echo "<table class='rep'><thead>";
+		echo "<tr><th colspan='2'>Report Types</th></tr></thead>";
+		echo "<tr><th colspan='2'><iframe src='https://docs.google.com/document/d/e/2PACX-1vS-UEMJNpN9tFUoJna7rbMLYBjEXf9-Dy5-xtkgDNex-xWL3EyEf_VZhBx312_FiLaNAjNT3voVn88-/pub?embedded=true' width='800' height='600'></iframe></th></tr></thead><tbody>";
+/*
+<iframe src="https://docs.google.com/document/d/e/2PACX-1vS-UEMJNpN9tFUoJna7rbMLYBjEXf9-Dy5-xtkgDNex-xWL3EyEf_VZhBx312_FiLaNAjNT3voVn88-/pub?embedded=true"></iframe>
+*/		
+		echo "</tbody></table>";
+	}
 	// >>>> Filters <<<<
 	if ($selrep=='filters') {
 		echo "<table class='rep'><thead>";
@@ -1216,8 +1216,8 @@ if ($selrep) {
 					inner join Reports r on r.repID=s.repID
 					where l.RepID='$selrep'";
 			$srcq = mysql_query($srcs,$repc);
-			if (!$selsched) {
-				$selsched="None";
+			if (!$cmpsel) {
+				$cmpsel="None";
 			}
 			$compact=['Add Report','Edit Report','Remove Report'];
 			if ($rselr['ReportType']=='Crystal') {
@@ -1237,7 +1237,7 @@ if ($selrep) {
 					array_push($complist, 'Publications');	
 				}
 			}				
-			echo "<tr><th></th><td><select name='selcomp' id='selcomp' onchange='this.form.submit()'>";
+			echo "<tr><th></th><td><select name='selcomp' id='selcomp' onchange='fcmpsel()'>";
 					echo "<optgroup class='blue' label='Select Component'>";
 					for ($i=0;$i<count($complist);$i++) {
 						if (!$selcomp) {
@@ -1433,16 +1433,16 @@ if ($selrep) {
 					array_push($selsch2, $schr['schedID']);	
 				}
 
-				echo "🔷<select name='selsched' id='selsched' onchange='this.form.submit()'>";
-					if (!$selsched || $selsched=="None") {
+				echo "🔷<select name='cmpsel' id='cmpsel' onchange='this.form.submit()'>";
+					if (!$cmpsel || $cmpsel=="None") {
 						echo "<option selected>None</option>";
-						$selsched="None";
+						$cmpsel="None";
 					} else {
 						echo "<option>None</option>";
 					}
 					echo "<optgroup class='blue' label='Select Schedule'>";
 					for ($i=0;$i<count($selsch2);$i++) {
-						if ($selsched==$selsch2[$i]) {
+						if ($cmpsel==$selsch2[$i]) {
 							echo "<option selected>{$selsch2[$i]}</option>";
 						} else {
 							echo "<option>{$selsch2[$i]}</option>";
@@ -1452,7 +1452,7 @@ if ($selrep) {
 					echo "<optgroup class='red' label='Action'>";
 					
 					for ($i=0;$i<count($selsch1);$i++) {
-						if ($selsched==$selsch1[$i]) {
+						if ($cmpsel==$selsch1[$i]) {
 							//$sw=1;
 							echo "<option selected>{$selsch1[$i]}</option>";
 						} else {
@@ -1460,12 +1460,12 @@ if ($selrep) {
 						}		
 					}
 					//if (!$sw) {
-					//	$selsched="None";
+					//	$cmpsel="None";
 					//}
 					
 					echo "</optgroup></select>";				
 				echo "</td></tr>";
-				if (($fltr['reportType']=="Publication" || $fltr['reportType']=="sh") && $selsched>0) {
+				if (($fltr['reportType']=="Publication" || $fltr['reportType']=="sh") && $cmpsel>0) {
 					
 					$srcs="select r.repID,r.Report,r.ReportType from Reports r 
 							inner join SourceLink l on l.RepID=r.repID
@@ -1519,9 +1519,9 @@ if ($selrep) {
 				$fncq = mysql_query($fncs,$repc);			
 				$selfunc=array('None','Add Functions');
 				//echo "$fncs <br>";
-				echo "🔷<select name='selfnc' id='selfnc' onchange='this.form.submit()'>";
+				echo "🔷<select name='cmpsel' id='cmpsel' onchange='this.form.submit()'>";
 	
-					if ($selfnc=="None") {
+					if ($cmpsel=="None") {
 						echo "<option selected value='None'>None</option>";
 					} else {
 						echo "<option value='None'>None</option>";
@@ -1533,7 +1533,7 @@ if ($selrep) {
 						if ($fncr['repID']) {
 							$gn='';	
 						} 						
-						if ($selfnc==$fncr['fncID']) {
+						if ($cmpsel==$fncr['fncID']) {
 							echo "<option class='$gn' value='{$fncr['fncID']}' selected>{$fncr['Funcn']}</option>";
 						} else {
 							echo "<option class='$gn' value='{$fncr['fncID']}'>{$fncr['Funcn']}</option>";
@@ -1541,7 +1541,7 @@ if ($selrep) {
 					}
 					echo "</<optgroup>";
 					echo "<optgroup class='red' label='Action'>";
-					if ($selfnc=="Add Function") {
+					if ($cmpsel=="Add Function") {
 						echo "<option class='red' selected value='Add Function'>Add Function</option>";
 					} else {
 						echo "<option class='red' value='Add Function'>Add Function</option>";
@@ -1558,22 +1558,22 @@ if ($selrep) {
 						where c.repID='$selrep' or (c.repID=0 and c.Done=0)";
 				$chgq = mysql_query($chgs,$repc);	
 				
-				echo "🔷<select name='selchg' id='selchg' onchange='this.form.submit()'>";
+				echo "🔷<select name='cmpsel' id='cmpsel' onchange='this.form.submit()'>";
 					
-					if ($selchg=="None") {
+					if ($cmpsel=="None") {
 						echo "<option selected value='None'>None</option>";
 					} else {
 						echo "<option value='None'>None</option>";
 					}
 					echo "<optgroup class='red' label='Action'>";
-					if ($selchg=="Add Change") {
+					if ($cmpsel=="Add Change") {
 						echo "<option selected value='Add Change'>Add Change</option>";
 					} else {
 						echo "<option value='Add Change'>Add Change</option>";
 					}	
 					echo "<optgroup class='blue' label='Select Change'>";
 					while ($chgr = mysql_fetch_array($chgq , MYSQL_ASSOC)) {
-						if ($selchg==$chgr['chgID']) {
+						if ($cmpsel==$chgr['chgID']) {
 							echo "<option value='{$chgr['chgID']}' selected>{$chgr['Date']}</option>";
 						} else {
 							echo "<option value='{$chgr['chgID']}'>{$chgr['Date']}</option>";
@@ -1586,19 +1586,19 @@ if ($selrep) {
 
 				
 			if ($selcomp=='Tables') {
-				echo "🔷 <select name='seltab' id='seltab' onchange='this.form.submit()'>";
-					if ($seltab=="None") {
+				echo "🔷 <select name='cmpsel' id='cmpsel' onchange='this.form.submit()'>";
+					if ($cmpsel=="None") {
 						echo "<option selected value='None'>None</option>";
 					} else {
 						echo "<option value='None'>None</option>";
 					}
 					echo "<optgroup class='red' label='Action'>";
-					if ($seltab=="View DB") {
+					if ($cmpsel=="View DB") {
 						echo "<option selected>View DB</option>";
 					} else {
 						echo "<option>View DB</option>";
 					}				
-					if ($seltab=="Link Table") {
+					if ($cmpsel=="Link Table") {
 						echo "<option selected value='Link Table'>Link Table</option>";
 					} else {
 						echo "<option value='Link Table'>Link Table</option>";
@@ -1617,7 +1617,7 @@ if ($selrep) {
 					echo "<optgroup class='blue' label='Table Name 🔹 Server 🔹 Database'>";
 					while ($tabr = mysql_fetch_array($tabq , MYSQL_ASSOC)) {
 
-						if ($seltab==$tabr['tabID']) {
+						if ($cmpsel==$tabr['tabID']) {
 							echo "<option value='{$tabr['tabID']}' selected>{$tabr['TableName']} 🔹 {$tabr['Server']} 🔹 {$tabr['DB']}</option>";
 						} else {
 							echo "<option value='{$tabr['tabID']}'>{$tabr['TableName']} 🔹 {$tabr['Server']} 🔹 {$tabr['DB']}</option>";
@@ -1634,13 +1634,13 @@ if ($selrep) {
 						where s.repID='$selrep'";
 				$schrq = mysql_query($schrs,$repc);
 				if (!$schr = mysql_fetch_array($schrq , MYSQL_ASSOC)) {
-					echo "🔷<select name='selsql' onchange='this.form.submit()'>";
-						if ($selsql=="None") {
+					echo "🔷<select name='cmpsel' onchange='this.form.submit()'>";
+						if ($cmpsel=="None") {
 							echo "<option selected value='None'>None</option>";
 						} else {
 							echo "<option value='None'>None</option>";
 						}
-						if ($selsql=="Add SQL") {
+						if ($cmpsel=="Add SQL") {
 							echo "<option class='red' selected value='Add SQL'>Add SQL</option>";
 						} else {
 							echo "<option class='red' value='Add SQL'>Add SQL</option>";
@@ -1658,9 +1658,9 @@ if ($selrep) {
 		
 	///////////////////// Schedules show ///////////////////////////////////////////////////////////////	
 	if ($selcomp=="Schedules") {
-		if ($selsched=="Add Schedule") { /// // sched*
+		if ($cmpsel=="Add Schedule") { /// // sched*
 			echo "<table class='sched'><thead>";
-			echo "<tr><th colspan='2'>$selsched</th></tr></thead><tbody class='updt'>";
+			echo "<tr><th colspan='2'>$cmpsel</th></tr></thead><tbody class='updt'>";
 			$dtls="select s.DestType from Schedules s group by s.DestType";
 			$dtlq = mysql_query($dtls,$repc);
 			$wa="<select name='destType'>";
@@ -1738,7 +1738,7 @@ if ($selrep) {
 			echo "</tfoot></table>";	
 			
 		}  	
-		if ($selcomp=='Schedules' && $selsched && $selsched != 'None') {
+		if ($cmpsel && $cmpsel != 'None') {
 			if (!$selsrc) {
 				$selsrc="None";
 			}
@@ -1846,11 +1846,11 @@ if ($selrep) {
 			} else  { // sched*
 				
 				echo "<table class='sched'><thead>";
-				if ($selsched=='Add Schedule') { 
-					echo "<tr><th>$selsched</th></tr>";
+				if ($cmpsel=='Add Schedule') { 
+					echo "<tr><th>$cmpsel</th></tr>";
 				}
-				$schrs="select * from Schedules where schedID='$selsched'";
-				//echo "<tr><th colspan='2'>selsched $selsched updtsch $updtsch</th></tr>";
+				$schrs="select * from Schedules where schedID='$cmpsel'";
+				//echo "<tr><th colspan='2'>cmpsel $cmpsel updtsch $updtsch</th></tr>";
 				$schrq = mysql_query($schrs,$repc);	
 				
 				if ($schr = mysql_fetch_array($schrq , MYSQL_ASSOC)) {
@@ -1872,7 +1872,7 @@ if ($selrep) {
 						$cl=" class='updt' ";
 					}					
 					//echo "<thead><tr><th colspan='2'>updtsch $updtsch - destType $destType</th></tr>";				
-					echo "<tr><th>ID</th><th>$selsched</th></tr></thead><tbody $cl>";
+					echo "<tr><th>ID</th><th>$cmpsel</th></tr></thead><tbody $cl>";
 					if ($updtsch=="Edit Schedule") {
 
 						$dtls="select s.DestType from Schedules s group by s.DestType";
@@ -2114,9 +2114,9 @@ if ($selrep) {
 		$wa.="</select>";
 		echo "<table class='sched'><thead>";
 		
-		if ($selfnc && $selfnc != 'None') {
+		if ($cmpsel && $cmpsel != 'None') {
 
-			if ($selfnc=="Add Function") {
+			if ($cmpsel=="Add Function") {
 				
 				echo "<tr><th>Function Name</th><td><input type='text' name='fname' required /></td></tr>";
 				echo "</thead><tbody class='updt'>";
@@ -2128,7 +2128,7 @@ if ($selrep) {
 			} else {
 			
 				$schrs="select f.fncID,f.IsCF,f.Name,f.`Function`,f.CustomFunction,f.timestamp,c.Name as custFunc,c.Function as custFunction from Functions f 
-						left join Functions c on c.fncID = f.CustomFunction where f.fncID='$selfnc'";
+						left join Functions c on c.fncID = f.CustomFunction where f.fncID='$cmpsel'";
 				//echo "<tr><th colspan='2'>$schrs </th></tr>";
 				$schrq = mysql_query($schrs,$repc);
 				if ($schr = mysql_fetch_array($schrq , MYSQL_ASSOC)) {
@@ -2151,7 +2151,7 @@ if ($selrep) {
 							}
 						}		
 						$wa.= "</select>";
-						echo "<tr><th>ID</th><td>$selfnc</td></tr>";
+						echo "<tr><th>ID</th><td>$cmpsel</td></tr>";
 						echo "</thead><tbody class='updt'>";
 						echo "<tr><th>Function Name</th><td><input type='text' name='fname' required value='{$schr['Name']}' /></td></tr>";
 						echo "<tr><th>Function</th><td><textarea required name='function'>{$schr['Function']}</textarea></td></tr>";
@@ -2169,7 +2169,7 @@ if ($selrep) {
 						
 					} else {
 						
-						echo "<tr><th>ID</th><th>$selfnc</th></tr>";
+						echo "<tr><th>ID</th><th>$cmpsel</th></tr>";
 						
 						echo "<tr><th>Name</th><th>{$schr['Name']}</th></tr></thead>";
 						echo "<tr><th>Function</th><td><textarea>{$schr['Function']}</textarea></td></tr>";	
@@ -2202,7 +2202,7 @@ if ($selrep) {
 							$sw=1;
 							//echo "<tr><td><textarea>{$schr['IsCF']}</textarea></td></tr>";
 							if ($schr['IsCF']) {
-								$chs="select * from Functions f where f.CustomFunction = $selfnc";
+								$chs="select * from Functions f where f.CustomFunction = $cmpsel";
 								$chq = mysql_query($chs,$repc);
 								if ($chr = mysql_fetch_array($chq , MYSQL_ASSOC)) {
 									$sw=0;
@@ -2278,8 +2278,8 @@ if ($selrep) {
 			$dte=date_create(date("Y-m-d"));
 			$date = date_format($dte, 'Y-m-d');
 			echo "<table class='sched'><thead>";
-			if ($selchg) {
-				if ($selchg=="Add Change") {
+			if ($cmpsel) {
+				if ($cmpsel=="Add Change") {
 					echo "<tr><th colspan='2'>Add Change</th></tr></thead><tbody class='updt'>";
 					echo "<tr><th>Add Change</th><td><input type='date' name='date' value='$date' /></td></tr>";
 					echo "<tr><th>Description</th><td><textarea name='description'></textarea></td></tr>";
@@ -2287,18 +2287,18 @@ if ($selrep) {
 					echo "<tr><th>Action/th><td><input type='submit' name='subchg' value='Add Change' /></td></tr>";
 				} else {
 					
-					//$schrs="select * from RepChanges where chgID='$selchg'";
+					//$schrs="select * from RepChanges where chgID='$cmpsel'";
 					$schrs="select chgID,Date,Done,r.Report,c.Description from RepChanges c
 							left join Reports r on r.repID=c.repID
-								where c.chgID='$selchg'";
+								where c.chgID='$cmpsel'";
 					//echo "$schrs <br>";
 					$schrq = mysql_query($schrs,$repc);
 					if ($schr = mysql_fetch_array($schrq , MYSQL_ASSOC)) {
-						echo "<thead><tr><th>ID</th><th>$selchg</th></tr></thead>";
+						echo "<thead><tr><th>ID</th><th>$cmpsel</th></tr></thead>";
 						echo "<tr><th>Report</th><th>{$schr['Report']}</th></tr>";
 						$wa = $schr['Done'] ? "checked" : "";
-						echo "<tr><th>Completed</th><th><input name='dnechg' type='checkbox' $wa value='$selchg' onchange='this.form.submit()' /></th></tr>";
-						echo "<tr><th>Description</th><td><textarea>{$schr['Description']}</textarea></td></tr>";	
+						echo "<tr><th>Completed</th><th><input name='dnechg' type='checkbox' $wa value='$cmpsel' onchange='this.form.submit()' /></th></tr>";
+						echo "<tr><th>Description</th><td><textarea>{$schr['Description']}</textarea></td></tr>";						
 
 					}
 					echo "</table>";
@@ -2315,7 +2315,7 @@ if ($selrep) {
 		if ($selcomp=='SQLstatement') {
 		
 			echo "<table class='sched'>";
-			if ($selsql=="Add SQL") {
+			if ($cmpsel=="Add SQL") {
 				echo "<thead><tr><th colspan='2'>Add SQL</th><tr></thead><tbody class='updt'>";
 				echo "<tr><th>Description</th><td><textarea name='addsql' onchange='this.form.submit()'></textarea></td></tr><tfoot>";	
 			} else {
@@ -2373,11 +2373,11 @@ if ($selrep) {
 
 		if ($selcomp=='Tables') {
 				
-			if ($seltab && $seltab != "None" && $seltab != "Link Table" && $seltab  != "View DB") { 
+			if ($cmpsel && $cmpsel != "None" && $cmpsel != "Link Table" && $cmpsel  != "View DB") { 
 				$schrs="select t.tabID,t.TableName,d.Server,d.DB,d.Type,t.timestamp,Input from TableLinks l
 							inner join TableDet t on t.tabID=l.tabID
 							inner join DatabaseDet d on d.dbID=t.dbID
-							where t.tabID='$seltab'
+							where t.tabID='$cmpsel'
 							order by d.Server,d.DB,t.TableName";
 				//echo "<tr><th>$schrs </th></tr>";
 				$schrq = mysql_query($schrs,$repc);
@@ -2414,7 +2414,7 @@ if ($selrep) {
 				echo "</table>";
 			}
 			
-			if ($seltab=="Link Table" || $seltab=="View DB") {
+			if ($cmpsel=="Link Table" || $cmpsel=="View DB") {
 		
 				$tls="select t.* from TableLinks l
 						inner join TableDet t on t.tabID=l.tabID
@@ -2497,7 +2497,7 @@ if ($selrep) {
 					echo "<tr><th>Description</th><td><input type='text' name='description' value='$description' /></td></tr>";
 					echo "</tbody><tfoot><tr><th colspan='2'><input title='$ad' type='submit' name='addDB' value='Add DB'</th></tr></tfoot>";
 					
-				} else if ($seltab=='View DB') {
+				} else if ($cmpsel=='View DB') {
 					
 					$dbs = "select * from DatabaseDet where dbID='$seldb'";
 					$dbq = mysql_query($dbs,$repc);
@@ -2589,7 +2589,7 @@ if ($selrep) {
 echo "</div>"; // <<<<<<<<<<<<<<<<<< div d2 <<<<<<<<<<<<<<<<
 
 echo "</div>"; // d0
-//xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
 ?>
 </form>
 <script>
