@@ -115,32 +115,12 @@
 	background-color: green;
 	color: white;
 }
-.replnk {
-	background-color: lightgreen;
-	position: fixed;
-	top: 270px;
-	z-index: 2;
-	width: 40%;
-	margin: 10px;
 
-}
-.replnk thead, .replnk tbody tr {
-    display: table;
-   width: 100%;
- /*   table-layout: fixed;  Ensures even column widths */
-}
-.replnk tbody {
-	color: black;
-    display: block;
-    height: 500px; /* Set the desired height for the scrollable area */
-    overflow-y: auto; /* Enables vertical scrolling */
-    overflow-x: hidden; /* Hides horizontal scrollbar */
-}
 
 .tabl {
 	background-color: lightgreen;
 	position: fixed;
-	top: 270px;
+	top: 290px;
 	z-index: 2;
 	width: 30%;
 	margin: 10px;
@@ -176,6 +156,7 @@ th, td {
 .red {
 	color: red;
 }
+
 .blue {
 	color: blue;
 }
@@ -202,13 +183,21 @@ th, td {
 .updt {
 	background-color: orange;
 }
-
+.rem {
+	color: white;
+	background-color: red;
+}
 </style>
 <script>
 
 function fcmpsel() {
 	let c=document.getElementById('cmpsel');
-	if (c) {
+	let u=document.getElementById('updtby');
+	let l=document.getElementById('replnk');
+	if (u && l) {
+		u.value="View";
+		alert('nou toe nou');
+	} else if (c) {
 		c.value='None';
 	}	
 
@@ -311,11 +300,15 @@ function fcmpsel() {
 	$newtab = $_POST["newtab"];	
 	$updttab = $_POST["updttab"];
 	$lnktab = $_POST["lnktab"];
+	$updtby = $_POST["updtby"];
+	$replnk = $_POST["replnk"];
 
 // SQL
 	$sql = $_POST["sql"];	
 	$sqlID = $_POST["sqlID"];	
 	$addsql = $_POST["addsql"];
+	
+//echo "cmpsel $cmpsel <br>"; 
 
 $repc = mysql_connect('192.168.110.17', 'crystal', '#Cry001#')
 	or die('Could not connect to .17: ' . mysql_error());
@@ -326,7 +319,7 @@ mysql_select_db('Reports',$repc) or die('Could not select mor db');
 		$r=$reminder ? 0 : $selrep;
 		$ins="insert into RepChanges (repID,Done,Date,Description,Item)
 				values('$r','0','$date','$description','Report')";
-		echo "$ins <br>";
+		//echo "$ins <br>";
 		$inq = mysql_query($ins,$repc);
 		$cmpsel="";
 	}
@@ -398,7 +391,22 @@ $ad ="";
 		}
 		//$cmpsel="";
 	}
-
+	if ($replnk) {
+		$tlks="select * from updateLinks where repID=$replnk and tabID= '$cmpsel'";
+		//echo "$tlks <br>";
+		$tlkq = mysql_query($tlks,$repc);
+		if ($tlkr = mysql_fetch_array($tlkq , MYSQL_ASSOC)) {
+			$dels="delete from updateLinks where  repID=$replnk and tabID=$cmpsel";
+			$delq = mysql_query($dels,$repc);
+			//echo "$dels <br>";
+		} else {
+			$ins="insert into updateLinks (tabID,repID) values('$cmpsel','$replnk')";
+			$inq = mysql_query($ins,$repc);
+			//echo "$ins <br>";
+			
+		}
+		//$cmpsel="";
+	}
 // >>>> SQL updates <<<<
 	if ($sql) {
 		$sql=str_replace("'","\'",$sql);
@@ -528,6 +536,7 @@ $ad ="";
 						'$runtime','$parameters','$filtersched','$status','$za','$ma')";
 			//echo "$ins <br>";
 			$inq = mysql_query($ins,$repc);
+			$cmpsel="None";
 		}
 		if ($updtsched == "Remove Schedule") {
 			echo "Remove Schedule $cmpsel<br>";
@@ -574,7 +583,7 @@ $ad ="";
 		$cmpsel="None";
 	}
 //echo "$taglnk <br>";
-session_start();
+//session_start();
 
 $cb="";
 
@@ -703,7 +712,6 @@ $cb="";
 			left join TableDet t on t.tabID=l.tabID 
 			left join Schedules s on s.repID=r.repID 
 			left join Functions f on f.repID=r.repID 
-			left join RepChanges c on c.repID=r.repID 
 			left join SQLstatements q on q.repID=r.repID 
 			left join TagLink g on g.repID=r.repID 
 			left join Tags tg on tg.tagID=g.tagID 
@@ -721,6 +729,7 @@ $cb="";
 			,s.Recurrence
 			,r.Source
 			,tg.Tag";	
+//left join RepChanges c on c.repID=r.repID 
 		$lstq = mysql_query($lsts,$repc);
 		$lstRepType=[];
 		$lstPath=[];
@@ -783,11 +792,11 @@ $cb="";
 			left join TableDet t on t.tabID=l.tabID 
 			left join Schedules s on s.repID=r.repID 
 			left join Functions f on f.repID=r.repID
-			left join RepChanges c on c.repID=r.repID
 			left join SQLstatements q on q.repID=r.repID
 			left join TagLink g on g.repID=r.repID
 			left join Tags tg on tg.tagID=g.tagID
 			left join DatabaseDet d on d.dbID=t.dbID";
+//left join RepChanges c on c.repID=r.repID			
 		$rs=" group by r.repID,Report,ReportType,Path,r.Status order by Report";
 
 
@@ -841,13 +850,13 @@ $cb="";
 				} else {
 					$wr = " where f.timestamp like '{$fltr['Timestamp']}%' ";
 				}		
-			} else if ($sts=="RepChanges") {
-				
-				if ($wr) {
-					$wr .= " and c.Date like '{$fltr['Timestamp']}%' ";
-				} else {
-					$wr = " where c.Date like '{$fltr['Timestamp']}%' ";
-				}
+		//	} else if ($sts=="RepChanges") {
+		//		
+		//		if ($wr) {
+		//			$wr .= " and c.Date like '{$fltr['Timestamp']}%' ";
+		//		} else {
+		//			$wr = " where c.Date like '{$fltr['Timestamp']}%' ";
+		//		}
 			
 			} else if ($sts=="DatabaseDet") {
 				
@@ -948,6 +957,13 @@ $cb="";
 	echo "<div class='d0'>";
 
 	// <<<<<<<<<<<<<<<<< d1 <<<<<<<<<<<<<
+	$rmds="select * from RepChanges where not done";
+	$rmdq = mysql_query($rmds,$repc);
+	$cl="";
+	if ($rmdr = mysql_fetch_array($rmdq , MYSQL_ASSOC)) {
+		$cl='rem';
+		
+	}
 	echo "<div class='d1'><table class='list'><thead>";
 
 	$ch="";
@@ -959,8 +975,8 @@ $cb="";
 		$hp='checked';
 	}
 
-	echo "</th></tr>";
-	echo "<tr><th title='$fi'>▽<input $ch type='radio' name='selrep' value='filters' onchange='this.form.submit()' />Filter Report <span class='yel'>- ({$fltr['reportType']})</span></th><th class='hlph'>?<input type='radio' name='selrep' value='hlptpe' $hp onchange='this.form.submit()' /></th></tr>";
+//	echo "</th></tr>";
+	echo "<tr><th title='$fi' class='$cl'>▽<input $ch type='radio' name='selrep' value='filters' onchange='this.form.submit()' />Filter Report <span class='yel'>- ({$fltr['reportType']})</span></th><th class='hlph'>?<input type='radio' name='selrep' value='hlptpe' $hp onchange='this.form.submit()' /></th></tr>";
 
 	echo "</thead>";
 
@@ -985,18 +1001,17 @@ echo "<div class='d2'>"; // <<<<<<<<<<<<<<<<< div d2 <<<<<<<<<<<<<<<<<<<
 	
 
 if ($selrep) {
-	
+
 	/////// Report ///////////////////////////////////////////////////////////////////////////////////////////////////////
 	if ($selrep=='hlptpe') {
 	// >>>> Report Type Help <<<<
 		echo "<table class='rep'><thead>";
 		echo "<tr><th colspan='2'>Report Types</th></tr></thead>";
 		echo "<tr><th colspan='2'><iframe src='https://docs.google.com/document/d/e/2PACX-1vS-UEMJNpN9tFUoJna7rbMLYBjEXf9-Dy5-xtkgDNex-xWL3EyEf_VZhBx312_FiLaNAjNT3voVn88-/pub?embedded=true' width='800' height='600'></iframe></th></tr></thead><tbody>";
-/*
-<iframe src="https://docs.google.com/document/d/e/2PACX-1vS-UEMJNpN9tFUoJna7rbMLYBjEXf9-Dy5-xtkgDNex-xWL3EyEf_VZhBx312_FiLaNAjNT3voVn88-/pub?embedded=true"></iframe>
-*/		
+		
 		echo "</tbody></table>";
 	}
+	
 	// >>>> Filters <<<<
 	if ($selrep=='filters') {
 		echo "<table class='rep'><thead>";
@@ -1115,6 +1130,7 @@ if ($selrep) {
 		$rselq = mysql_query($rsel,$repc);
 		// >>>> Report processes <<<<
 		if ($rselr = mysql_fetch_array($rselq , MYSQL_ASSOC)) {
+				
 			echo "<table class='rep'><thead>";
 			if ($selcomp !='Add Report') {
 				echo "<tr><th>ID</th><td>$selrep</td></tr>";
@@ -1211,7 +1227,7 @@ if ($selrep) {
 				echo "<tfoot><tr><th>Timestamp</th><th>{$rselr['timestamp']}</th></tr>";
 			}
 			
-			$srcs= "select r.Report,r.repID,l.DestRepName,l.Format,r.ReportType,s.Recurrence from SourceLink l 
+			$srcs= "select r.Report,r.repID,l.DestRepName,l.Format,r.ReportType,s.Recurrence,s.schedID from SourceLink l 
 					inner join Schedules s on s.schedID=l.schID
 					inner join Reports r on r.repID=s.repID
 					where l.RepID='$selrep'";
@@ -1414,10 +1430,10 @@ if ($selrep) {
 				}
 				while ($srcr = mysql_fetch_array($srcq , MYSQL_ASSOC)) {
 				
-					if ($selpub==$srcr['repID']) {
-						echo "<option value='{$srcr['repID']}' selected>{$srcr['Report']}</option>";
+					if ($selpub==$srcr['schedID']) {
+						echo "<option value='{$srcr['schedID']}' selected>{$srcr['Report']} - {$srcr['schedID']}</option>";
 					} else {
-						echo "<option value='{$srcr['repID']}'>{$srcr['Report']}</option>";
+						echo "<option value='{$srcr['schedID']}'>{$srcr['Report']} - {$srcr['schedID']}</option>";
 					}		
 				}
 				echo "</select></td></tr>";
@@ -1499,9 +1515,9 @@ if ($selrep) {
 					}
 					$wa.= "</optgroup>";
 					$wa.= "</select></td></tr>";	
-					if (in_array('Recipients',$tpeList)) {
+					//if (in_array('Recipients',$tpeList)) {
 						echo $wa;
-					}
+					//}
 					//$cntl = count($tpeList);
 				}
 				
@@ -1555,11 +1571,12 @@ if ($selrep) {
 			if ($selcomp=='Changes') {
 				$chgs="select c.repID,chgID,Date,Done,r.Report,c.Description from RepChanges c
 						left join Reports r on r.repID=c.repID
-						where c.repID='$selrep' or (c.repID=0 and c.Done=0)";
+						where c.repID='$selrep' or c.Done=0";
+				//where c.repID='$selrep' or (c.repID=0 and c.Done=0)";
 				$chgq = mysql_query($chgs,$repc);	
 				
 				echo "🔷<select name='cmpsel' id='cmpsel' onchange='this.form.submit()'>";
-					
+		
 					if ($cmpsel=="None") {
 						echo "<option selected value='None'>None</option>";
 					} else {
@@ -1573,10 +1590,16 @@ if ($selrep) {
 					}	
 					echo "<optgroup class='blue' label='Select Change'>";
 					while ($chgr = mysql_fetch_array($chgq , MYSQL_ASSOC)) {
+						$cl = "";
+						if (!$chgr['repID']) {
+							$cl='ora';
+						} else if (!$chgr['Done']) {
+							$cl='grn';
+						}						
 						if ($cmpsel==$chgr['chgID']) {
-							echo "<option value='{$chgr['chgID']}' selected>{$chgr['Date']}</option>";
+							echo "<option class='$cl' value='{$chgr['chgID']}' selected>{$chgr['Date']}</option>";
 						} else {
-							echo "<option value='{$chgr['chgID']}'>{$chgr['Date']}</option>";
+							echo "<option class='$cl' value='{$chgr['chgID']}'>{$chgr['Date']}</option>";
 						}
 					}
 				echo "</select></td></tr>";
@@ -1584,20 +1607,25 @@ if ($selrep) {
 			
 			///////////// Table selections
 
-				
+	
+			
 			if ($selcomp=='Tables') {
+				
+				//fcmpsel
 				echo "🔷 <select name='cmpsel' id='cmpsel' onchange='this.form.submit()'>";
 					if ($cmpsel=="None") {
 						echo "<option selected value='None'>None</option>";
 					} else {
 						echo "<option value='None'>None</option>";
 					}
+					
 					echo "<optgroup class='red' label='Action'>";
 					if ($cmpsel=="View DB") {
 						echo "<option selected>View DB</option>";
 					} else {
 						echo "<option>View DB</option>";
-					}				
+					}	
+					
 					if ($cmpsel=="Link Table") {
 						echo "<option selected value='Link Table'>Link Table</option>";
 					} else {
@@ -1623,7 +1651,32 @@ if ($selrep) {
 							echo "<option value='{$tabr['tabID']}'>{$tabr['TableName']} 🔹 {$tabr['Server']} 🔹 {$tabr['DB']}</option>";
 						}
 					}
+					
 				echo "</select></th></tr>";
+				if (is_numeric($cmpsel) ) {	
+					$whs="select * from TableDet t 
+							inner join DatabaseDet d on d.dbID=t.dbID
+							where tabID='$cmpsel' and d.Server='Warehouse'";
+					$whq = mysql_query($whs,$repc);
+					$whr = mysql_fetch_array($whq , MYSQL_ASSOC);
+					$wa="<select name='updtby' id='updtby' onchange='this.form.submit()'>";
+					if ($updtby=="View" || !$updtby) {
+						$wa.="<option selected>View</option>";
+						$updtby="View";
+					} else {
+						$wa.="<option>View</option>";
+					}
+					if ($whr) {
+						if ($updtby=="Updated By") {
+							$wa.="<option selected>Updated By</option>";
+						} else {
+							$wa.="<option>Updated By</option>";
+						}
+					}
+					$wa.="</select>";
+					echo "<tr><th>Table Options</th><td>$wa</td></tr>";
+				}
+				
 			}
 			
 			///////////// SQL selections		
@@ -1657,6 +1710,7 @@ if ($selrep) {
 	//////////////////  Show item components ////////////////////////////////////////////////////	
 		
 	///////////////////// Schedules show ///////////////////////////////////////////////////////////////	
+	
 	if ($selcomp=="Schedules") {
 		if ($cmpsel=="Add Schedule") { /// // sched*
 			echo "<table class='sched'><thead>";
@@ -2020,6 +2074,7 @@ if ($selrep) {
 	}
 
 	///////////////////// Link Reports
+
 	if ($selcomp=="Linked Reports") {
 		if ($replst && $replst !="None") {
 			$rps="select * from Reports r
@@ -2295,7 +2350,8 @@ if ($selrep) {
 					$schrq = mysql_query($schrs,$repc);
 					if ($schr = mysql_fetch_array($schrq , MYSQL_ASSOC)) {
 						echo "<thead><tr><th>ID</th><th>$cmpsel</th></tr></thead>";
-						echo "<tr><th>Report</th><th>{$schr['Report']}</th></tr>";
+						$p=$schr['Report'] ? $schr['Report'] : "Reminder";
+						echo "<tr><th>Report</th><th>$p</th></tr>";
 						$wa = $schr['Done'] ? "checked" : "";
 						echo "<tr><th>Completed</th><th><input name='dnechg' type='checkbox' $wa value='$cmpsel' onchange='this.form.submit()' /></th></tr>";
 						echo "<tr><th>Description</th><td><textarea>{$schr['Description']}</textarea></td></tr>";						
@@ -2309,7 +2365,6 @@ if ($selrep) {
 
 
 		///////////// SQL show  
-
 			
 			
 		if ($selcomp=='SQLstatement') {
@@ -2372,8 +2427,7 @@ if ($selrep) {
 	
 
 		if ($selcomp=='Tables') {
-				
-			if ($cmpsel && $cmpsel != "None" && $cmpsel != "Link Table" && $cmpsel  != "View DB") { 
+			if (is_numeric($cmpsel) && $updtby=="View") { 			
 				$schrs="select t.tabID,t.TableName,d.Server,d.DB,d.Type,t.timestamp,Input from TableLinks l
 							inner join TableDet t on t.tabID=l.tabID
 							inner join DatabaseDet d on d.dbID=t.dbID
@@ -2391,6 +2445,18 @@ if ($selrep) {
 					echo "<tr><th>DB</th><td>{$schr['DB']}</td></tr>";
 					echo "<tr><th>Table Name</th><td>{$schr['TableName']}</td></tr>";	
 					echo "<tr><th>Process Type</th><td>{$schr['Input']}</td></tr>";	
+					$ubs="select r.Report from updateLinks u 
+							left join Reports r on r.repID=u.repID
+							where 	u.tabID='{$schr['tabID']}'";
+					$ubq = mysql_query($ubs,$repc);
+					$wa="<select>";
+					while ($ubr = mysql_fetch_array($ubq , MYSQL_ASSOC)) {
+						$wa.="<option>{$ubr['Report']}</option>";
+					}
+					if ($wa != "<select>") {
+						$wa.="</select>";
+						echo "<tr><th>Updated By</th><td>$wa</td></tr>";
+					}
 					echo "</tbody><tfoot><tr><th>Timestamp</th><td>{$schr['timestamp']}</td></tr>";
 					
 				} 
@@ -2411,11 +2477,31 @@ if ($selrep) {
 					//	echo "<option class='red' value='Remove Table'>Remove Table</option>";
 					//}				
 				echo "</select></td></tr></tfoot>";	
-				echo "</table>";
-			}
+				
+			} else if (is_numeric($cmpsel) && $updtby=="Updated By") { 
+				echo "<table class='tabl'>";
+				$phps="select * from Reports r
+							where ReportType = 'PHP'
+							order by Report";
+				$phpq = mysql_query($phps,$repc);
+				while ($phpr = mysql_fetch_array($phpq , MYSQL_ASSOC)) {
+					$ups="select * from updateLinks u 
+							where tabID = '$cmpsel' and repID='{$phpr['repID']}' ";
+					$upq = mysql_query($ups,$repc);
+					$upr = mysql_fetch_array($upq , MYSQL_ASSOC);
+					$wa= "<input type='radio' name='replnk' value='{$phpr['repID']}' onchange='this.form.submit()' />{$phpr['Report']}";
+					$cl="";
+					if ($upr['tabID']==$cmpsel) {
+						$cl="class='ora'";						
+					} 
+					echo "<tr $cl><th>$wa</th></tr>";
+					
+				}				
+
+			}	
 			
 			if ($cmpsel=="Link Table" || $cmpsel=="View DB") {
-		
+				
 				$tls="select t.* from TableLinks l
 						inner join TableDet t on t.tabID=l.tabID
 						where repID=$selrep";
@@ -2470,7 +2556,7 @@ if ($selrep) {
 				if ($seldb=="Add DB") {
 					
 					echo "</thead>";
-					echo "<table class='sched'>";
+					//echo "<table class='sched'>";
 					echo "<tr><th>DB</th><td><input type='text' name='db' value='$db' /></td></tr>";
 					echo "<tr><th>IP</th><td><input type='text' name='ip' value='$ip' /></td></tr>";
 					echo "<tr><th>Server</th><td><input type='text' name='server' value='$server' /></td></tr>";
@@ -2498,7 +2584,7 @@ if ($selrep) {
 					echo "</tbody><tfoot><tr><th colspan='2'><input title='$ad' type='submit' name='addDB' value='Add DB'</th></tr></tfoot>";
 					
 				} else if ($cmpsel=='View DB') {
-					
+					//echo "<table class='sched'>";
 					$dbs = "select * from DatabaseDet where dbID='$seldb'";
 					$dbq = mysql_query($dbs,$repc);
 					$dbr = mysql_fetch_array($dbq , MYSQL_ASSOC);
@@ -2555,30 +2641,37 @@ if ($selrep) {
 					
 				}
 				
-				echo "</table>";
-			} 
-			
-		}		 
 				
+			} 
+			echo "</table>";
+		}
+		
 		if ($selcomp=='Publications') {
 			if ($selpub != "None") {	
-				$pubs="select r.Report,r.repID,l.DestRepName,r.Path,r.ReportType,s.Recurrence from SourceLink l 
+				$pubs="select s.schedID,r.Report,r.repID,s.DestDetail,l.DestRepName,l.Format,r.Path,r.ReportType,s.Recurrence,s.Zipped
+						from SourceLink l 
 						inner join Schedules s on s.schedID=l.schID
 						inner join Reports r on r.repID=s.repID 
-						where r.repID=$selpub and l.RepID=$selrep";
+						where s.schedID=$selpub and l.RepID=$selrep";
 					
 				$pubq = mysql_query($pubs,$repc);
 				echo "<table class='sched'>";
 				//echo "<tr><th><textarea>$pubs</textarea></th></tr>";
 				if ($pubr = mysql_fetch_array($pubq , MYSQL_ASSOC)) {		
-					echo "<thead><tr><th>Report ID</th><td>{$pubr['repID']}</td></tr>";
-					echo "<tr><th>Report</th><td>{$pubr['Report']}</td></tr></thead>";
+					echo "<thead><tr><th>Publication ID</th><td>{$pubr['repID']}</td></tr>";
+					echo "<tr><th>Publication</th><td>{$pubr['Report']}</td></tr>";
+					echo "<tr><th>schedID</th><td>{$pubr['schedID']}</td></tr></thead>";
 					echo "<tr><th>Path</th><td>{$pubr['Path']}</td></tr>";
+					echo "<tr><th>Dest Detail</th><td><textarea>{$pubr['DestDetail']}</textarea></td></tr>";
 					echo "<tr><th>Dest Report</th><td><textarea>{$pubr['DestRepName']}</textarea></td></tr>";
+					echo "<tr><th>Dest Format</th><td>{$pubr['Format']}</td></tr>";
+					$z = $pubr['Zipped'] ? "Yes" : "No";
+					echo "<tr><th>Dest Zipped</th><td>$z</td></tr>";
 					echo "<tr><th>Recurrence</th><td>{$pubr['Recurrence']}</td></tr>";
 				}
 				echo "</table>";
 			}	
+		
 		}
 		
 	}
