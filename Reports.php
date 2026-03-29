@@ -189,15 +189,16 @@ th, td {
 }
 </style>
 <script>
+//taglnk
 
-function fcmpsel() {
+//element.addEventListener('click', function, useCapture);
+function fcmpsel(n) {
 	let c=document.getElementById('cmpsel');
-	let u=document.getElementById('updtby');
-	let l=document.getElementById('replnk');
-	if (u && l) {
-		u.value="View";
-		alert('nou toe nou');
-	} else if (c) {
+	let t=document.getElementById('selcomp');
+	if (t && n) {
+		t.value="";
+	}
+	if (c) {
 		c.value='None';
 	}	
 
@@ -309,6 +310,7 @@ function fcmpsel() {
 	$subtab = $_POST["subtab"];
 	$seltab = $_POST["seltab"];
 	$tablnk = $_POST["tablnk"];
+	$ftable = $_POST["ftable"];
 // SQL
 	$sql = $_POST["sql"];	
 	$sqlID = $_POST["sqlID"];	
@@ -667,12 +669,16 @@ $cb="";
 		if ($fltr['DB'] != $fdb) {
 			$st.= $st ? " ,DB='$fdb'" : "DB='$fdb'";				
 		}
+		if ($fltr['Table'] != $ftable) {
+			$st.= $st ? " ,`Table`='$ftable'" : "`Table`='$ftable'";				
+		}		
 		if ($fltr['Recurrence'] != $frecurrence) {
 			$st.= $st ? " ,Recurrence='$frecurrence'" : "Recurrence='$frecurrence'";				
 		}
 		if ($st) {
-			$upds.=$st;
+			$upds.=$st. " where `Filter`>''";
 			$updq = mysql_query($upds,$repc);
+			//echo "$upds <br>";
 			$selrep='';
 		}
 		
@@ -728,6 +734,8 @@ $cb="";
 			,r.Status
 			,d.DB
 			,d.dbID
+			,t.TableName
+			,t.tabID
 			,d.Type
 			,d.Server
 			,s.Formats
@@ -749,6 +757,8 @@ $cb="";
 			,r.Path
 			,r.Status 
 			,d.DB
+			,t.TableName
+			,t.tabID
 			,d.dbID
 			,d.Type
 			,d.Server
@@ -759,7 +769,7 @@ $cb="";
 			,tg.Tag";	
 //left join RepChanges c on c.repID=r.repID 
 		$lstq = mysql_query($lsts,$repc);
-		$lstRepType=[];
+		$lstRepType=['All'];
 		$lstPath=[];
 		$lstStatus=[];
 		$lstDB=[];
@@ -783,6 +793,7 @@ $cb="";
 			if ($lstr['dbID'] && !in_array($lstr['dbID'], $lstDB)) {
 				array_push($lstDB, $lstr['dbID']);	
 			}	
+				
 			if ($lstr['Type'] && !in_array($lstr['Type'], $lstdbType)) {
 				array_push($lstdbType, $lstr['Type']);	
 			}	
@@ -830,7 +841,9 @@ $cb="";
 
 		//if ($seltype) {
 			//$wr.=" where ReportType = '$seltype' ";
-			$wr.=" where ReportType = '{$fltr['reportType']}' ";
+			if ($fltr['reportType'] !="All") {
+				$wr.=" where ReportType = '{$fltr['reportType']}' ";
+			} 
 			if ($fltr['Report']) {
 				if ($wr) {
 					$wr.=" and Report like '%{$fltr['Report']}%' ";
@@ -889,7 +902,7 @@ $cb="";
 			} else if ($sts=="DatabaseDet") {
 				
 				if ($wr) {
-					$wr .= " and d.timestamp like '%{$fltr['Timestamp']}%' ";
+					$wr .= " and d.timestamp like '%{$fltr['Timestamp']}%'";
 				} else {
 					$wr = " where d.timestamp like '%{$fltr['Timestamp']}%' ";
 				}
@@ -929,7 +942,13 @@ $cb="";
 				$wr = " where t.dbID = {$fltr['DB']} ";
 			}
 		}	
-		
+		if (is_numeric($fltr['Table'])) {
+			if ($wr) {
+				$wr .= " and t.tabID = {$fltr['Table']} ";
+			} else {
+				$wr = " where t.tabID = {$fltr['Table']} ";
+			}
+		}			
 
 		if ($fltr['Recurrence'] && $fltr['Recurrence'] != 'None') {
 			if ($wr) {
@@ -1016,7 +1035,8 @@ $cb="";
 	while ($repr = mysql_fetch_array($repq , MYSQL_ASSOC)) {
 		$selected= ($selrep==$repr['repID']) ? "checked" : "";
 		$cnt++;
-		echo "<tr><td colspan='2'>$cnt<input type='radio' name='selrep' id='selrep' value='{$repr['repID']}' $selected onchange='fcmpsel()' />{$repr['Report']}</td></tr>";
+		$rt = ($fltr['reportType'] == "All") ? $repr['ReportType'] : "";
+		echo "<tr><td>$cnt<input type='radio' name='selrep' id='selrep' value='{$repr['repID']}' $selected onchange='fcmpsel(1)' />{$repr['Report']}</td><td>$rt</td></tr>";
 	}
 
 	echo "</tbody></table></div>"; // <<<<<<<<<<<<<<<< div d1 <<<<<<<<<<<<<<
@@ -1143,7 +1163,31 @@ if ($selrep) {
 				echo "<option value='{$dblr['dbID']}'>{$dblr['DB']} - {$dblr['Server']}</option>";
 			}
 		}		
-		echo "</select></td></tr>";		
+		echo "</select></td></tr>";	
+	$wr = is_numeric($fltr['DB']) ? " where d.dbID={$fltr['DB']} " : "";
+		$tbs="select tabID,TableName,Server from TableDet t 
+			left join DatabaseDet d on d.dbID=t.dbID
+			$wr
+			order by t.TableName,d.Server";		
+		echo "<tr><th>Table</th><td><select name='ftable'>";
+		if (!$fltr['Table'] || $fltr['Table']=='None') {
+			echo "<option selected>None</option>";
+		} else {
+			echo "<option>None</option>";
+		}	
+		
+
+		
+		$tbq = mysql_query($tbs,$repc);			
+		echo "<optgroup class='blue' label='Select Table'>";			
+		while ($tbr = mysql_fetch_array($tbq , MYSQL_ASSOC)) {
+			if ($fltr['Table']==$tbr['tabID']) {				
+				echo "<option selected value='{$tbr['tabID']}'>{$tbr['TableName']} - {$tbr['Server']}</option>";
+			} else {
+				echo "<option value='{$tbr['tabID']}'>{$tbr['TableName']} - {$tbr['Server']}</option>";
+			}
+		}		
+		echo "</select></td></tr>";			
 		echo "</tbody><tfoot>";
 		echo "<tr><th colspan='2'><input type='submit' name='subfil' value='Apply Filter' />";
 		echo "<input type='submit' name='filclr' value='Reset Filters' /></th></tr>";
@@ -1279,7 +1323,7 @@ if ($selrep) {
 					array_push($complist, 'Publications');	
 				}
 			}				
-			echo "<tr><td colspan='2'><select name='selcomp' id='selcomp' onchange='fcmpsel()'>";
+			echo "<tr><td colspan='2'><select name='selcomp' id='selcomp' onchange='fcmpsel(0)'>";
 					echo "<optgroup class='blue' label='Select Component'>";
 					for ($i=0;$i<count($complist);$i++) {
 						if (!$selcomp) {
