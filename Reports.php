@@ -187,6 +187,10 @@ th, td {
 	color: white;
 	background-color: red;
 }
+.mrk {
+	color: white;
+	background-color: blue;	
+}
 </style>
 <script>
 //taglnk
@@ -231,6 +235,9 @@ function fcmpsel(n) {
 	$rptlnk = $_POST["rptlnk"];
 	$replst = $_POST["replst"];
 	$cmpsel = $_POST["cmpsel"];
+	$cbapplfil = $_POST["cbapplfil"];
+	
+	//cbapplfil
 //Schedules
 
 	$updtsch = $_POST["updtsch"];
@@ -249,6 +256,7 @@ function fcmpsel(n) {
 	$newrecurrence = $_POST["newrecurrence"];
 	$updtsched = $_POST["updtsched"];	
 	$subsrc = $_POST["subsrc"];
+	$remsrc = $_POST["remsrc"];
 // Components 
 	$selcomp = $_POST["selcomp"];
 // Functions
@@ -315,7 +323,8 @@ function fcmpsel(n) {
 	$sql = $_POST["sql"];	
 	$sqlID = $_POST["sqlID"];	
 	$addsql = $_POST["addsql"];
-	
+// Linked reports
+	$repGroup = $_POST["repGroup"];
 //echo "cmpsel $cmpsel <br>"; 
 if (!$actdb) {
 	$actdb="None";
@@ -326,6 +335,7 @@ if (!$seltab) {
 if (!$cmpsel) {
 	$cmpsel="None";
 }
+//repGroup
 $repc = mysql_connect('192.168.110.17', 'crystal', '#Cry001#')
 	or die('Could not connect to .17: ' . mysql_error());
 mysql_select_db('Reports',$repc) or die('Could not select mor db');
@@ -565,16 +575,26 @@ $ad ="";
 		if ($updtsched == "Remove Schedule") {
 			//echo "Remove Schedule $cmpsel<br>";
 			$dels="delete from Schedules where schedID=$cmpsel";
-			$dels = mysql_query($dels,$repc);
+			$delq = mysql_query($dels,$repc);
 			$cmpsel="None";
 		}
 
 	}
 	if ($selcomp=="Linked Reports") {
-		if ($subsrc) {
-			echo "$subsrc reports $replst to $selrep<br>";
+		if ($subsrc=="Add Source") {
+			$ins="insert into SourceLink (DestRepName,RepID,Format,repGroup,srcID) 
+					values('$destreport','$replst','$format','$repGroup','$selrep')";
+			//echo "$ins<br>";			
+			//echo "$subsrc reports $replst to $selrep repGroup $repGroup format $format destreport $destreport<br>";					
+			$inq = mysql_query($ins,$repc);
+			$replst="None";
+		//$updtsch="None";	
 		}
-		//$updtsch="None";		
+		if ($remsrc=="Remove Source") {
+			$dels="delete from SourceLink where Repid='$replst' and srcID='$selrep'";
+			$delq = mysql_query($dels,$repc);
+			$replst="None";			
+		}
 	}
 // >>>> Function updates <<<<	
 
@@ -679,7 +699,9 @@ $cb="";
 			$upds.=$st. " where `Filter`>''";
 			$updq = mysql_query($upds,$repc);
 			//echo "$upds <br>";
-			$selrep='';
+			if (!$cbapplfil) {
+				$selrep='';
+			}
 		}
 		
 	}
@@ -1034,9 +1056,10 @@ $cb="";
 	echo "</thead><tbody>";
 	while ($repr = mysql_fetch_array($repq , MYSQL_ASSOC)) {
 		$selected= ($selrep==$repr['repID']) ? "checked" : "";
+		$cl= ($selrep==$repr['repID']) ? "mrk" : "";
 		$cnt++;
 		$rt = ($fltr['reportType'] == "All") ? $repr['ReportType'] : "";
-		echo "<tr><td>$cnt<input type='radio' name='selrep' id='selrep' value='{$repr['repID']}' $selected onchange='fcmpsel(1)' />{$repr['Report']}</td><td>$rt</td></tr>";
+		echo "<tr class='$cl'><td>$cnt<input type='radio' name='selrep' id='selrep' value='{$repr['repID']}' $selected onchange='fcmpsel(1)' />{$repr['Report']}</td><td>$rt</td></tr>";
 	}
 
 	echo "</tbody></table></div>"; // <<<<<<<<<<<<<<<< div d1 <<<<<<<<<<<<<<
@@ -1190,6 +1213,8 @@ if ($selrep) {
 		echo "</select></td></tr>";			
 		echo "</tbody><tfoot>";
 		echo "<tr><th colspan='2'><input type='submit' name='subfil' value='Apply Filter' />";
+		$ch = $cbapplfil ? "checked" : "";
+		echo "<input $ch title='To apply filter without closing the filter screen.' type='checkbox' name='cbapplfil' />";
 		echo "<input type='submit' name='filclr' value='Reset Filters' /></th></tr>";
 		echo"</tfoot></table>";
 	} else {
@@ -1295,11 +1320,12 @@ if ($selrep) {
 				echo "<tr><th>Filters</th><td><textarea>{$rselr['Filters']}</textarea></td></tr></tbody>";
 				echo "<tfoot><tr><th>Timestamp</th><th>{$rselr['timestamp']}</th></tr>";
 			}
-			
-			$srcs= "select r.Report,r.repID,l.DestRepName,l.Format,r.ReportType,s.Recurrence,s.schedID from SourceLink l 
-					inner join Schedules s on s.schedID=l.schID
-					inner join Reports r on r.repID=s.repID
-					where l.RepID='$selrep'";
+			//source link
+			$srcs= "select r.Report,r.repID,l.DestRepName,l.Format,r.ReportType,s.Recurrence,s.schedID 
+						from SourceLink l 
+						inner join Reports r on r.repID=l.srcID
+						inner join Schedules s on s.repID=r.repID
+						where l.RepID='$selrep'";
 			$srcq = mysql_query($srcs,$repc);
 			$srcr = mysql_fetch_array($srcq , MYSQL_ASSOC);
 			$compact=['Add Report','Edit Report','Remove Report'];
@@ -1362,13 +1388,15 @@ if ($selrep) {
 					 $wr .= " and Report like '%$fltrep%'";
 				}
 				$rpts="select * from Reports t
-						where $wr order by Report";
+						left join (select * from SourceLink where srcID=$selrep) s  on s.Repid=t.repID 
+						where ($wr)  or s.RepID>0 order by Report";
 				$rptq = mysql_query($rpts,$repc);	
 				if ($replst=="None") {
 					echo "<option selected>None</option>";
 				} else {
 					echo "<option>None</option>";
 				}
+				//select
 				echo "<optgroup class='blue' label='Select a Report'>";
 				while ($rptr = mysql_fetch_array($rptq , MYSQL_ASSOC)) {
 					$rps="select * from SourceLink where srcID='$selrep' and RepID='{$rptr['repID']}'";
@@ -1377,10 +1405,11 @@ if ($selrep) {
 					if ($rpr = mysql_fetch_array($rpq , MYSQL_ASSOC)) {
 						$cl="ora";
 					}
+					$ti = "{$rptr['Path']}";
 					if ($replst==$rptr['repID']) {	
-						echo "<option class='$cl' selected value='{$rptr['repID']}'>{$rptr['Report']} - {$rptr['ReportType']}</option>";
+						echo "<option title='$ti' class='$cl' selected value='{$rptr['repID']}'>{$rptr['Report']} - {$rptr['ReportType']}</option>";
 					} else {
-						echo "<option class='$cl'  value='{$rptr['repID']}'>{$rptr['Report']} - {$rptr['ReportType']}</option>";
+						echo "<option title='$ti' class='$cl'  value='{$rptr['repID']}'>{$rptr['Report']} - {$rptr['ReportType']}</option>";
 					}
 				}
 				echo "</optgroup>";
@@ -1546,8 +1575,8 @@ if ($selrep) {
 					//}
 					
 					echo "</optgroup></select>";				
-				echo "</td></tr>";
-				if (($fltr['reportType']=="Publication" || $fltr['reportType']=="sh") && is_numeric($cmpsel)) {
+					echo "</td></tr>";
+				if (($fltr['reportType']=="Publication" || $fltr['reportType']=="sh" || $fltr['reportType']=="All") && is_numeric($cmpsel)) {
 					
 					$srcs="select r.repID,r.Report,r.ReportType from Reports r 
 							inner join SourceLink l on l.RepID=r.repID
@@ -1909,17 +1938,20 @@ if ($selrep) {
 						$perr = mysql_fetch_array($perq , MYSQL_ASSOC);
 						
 						if ($dbcr['DB']=="IOtel") { 
-						
-							$wa=" (period like '%{$perr['period']}%'";
-							
-							if ($perr['period']=='da') {
-								$wa.=" or period like '%mtd%'";
-								
+							$wa="";
+							if ($perr['period'] != "Ad-hoc") {
+								$wa=" and (period like '%{$perr['period']}%'";
 							}
 							
-							$wa.=")";
+							if ($perr['period']=='da' && $wa) {
+								$wa.=" or period like '%mtd%')";
+							} else if ($perr['period']=='da') {
+								$wa.=" and period like '%mtd%')";
+							} 
 							
-							$recs="select Name as nme,contact_email,period as frequency,runDate,Report,IsActive from IOtel.recipients where Report='{$srcr['repGroup']}' and $wa";
+							
+							
+							$recs="select Name as nme,contact_email,period as frequency,runDate,Report,IsActive from IOtel.recipients where Report='{$srcr['repGroup']}' $wa";
 							
 						} else if ($dbcr['DB']=="nTwineSum") {
 							$recs="select Name as nme,contact_email,frequency,runDate,Report,IsActive from nTwineSum.nTwineRecipients where Report='{$srcr['repGroup']}' and frequency like '%{$perr['period']}%'";
@@ -1931,7 +1963,7 @@ if ($selrep) {
 					$recq = mysql_query($recs,$repc);
 					
 					echo "<thead>";	
-					
+					echo "<tr><th colspan='2'><textarea>$recs</textarea></th></tr>";
 						
 					$ls="";
 					while ($recr = mysql_fetch_array($recq , MYSQL_ASSOC)) {
@@ -1955,9 +1987,9 @@ if ($selrep) {
 							
 					}	
 					
-					echo  "<tr><th><select name='selnam' onchange='this.form.submit()'>$ls</select></th></tr></thead>";
+					echo  "<tr><th><select name='selnam' onchange='this.form.submit()'>$ls</select></th></tr>";
 					
-					echo "<tbody>";	
+					echo "</thead><tbody>";	
 					
 					
 					if ($selsrc==31) {
@@ -2161,7 +2193,7 @@ if ($selrep) {
 				$rpq = mysql_query($rps,$repc);
 				echo "<table class='sched'><tbody>";
 				if ($rpr = mysql_fetch_array($rpq , MYSQL_ASSOC)) {				
-					echo "<tr><th>$replst -- Destination Report</th><td><input size='50' type='text' name='destReport' value='{$rpr['DestRepName']}' /></td></tr>";
+					echo "<tr><th>$replst -- Destination Report</th><td><input size='50' type='text' name='destreport' value='{$rpr['DestRepName']}' /></td></tr>";
 					$wa="<select name='format'>";
 					for ($i=0;$i<count($lstFormat);$i++) {
 						if (!$rpr['Format']) {
@@ -2220,7 +2252,7 @@ if ($selrep) {
 					} else {
 						$act="Add Source";
 					}
-					echo "<tbody><tfoot><tr><th colspan='2'><input type='submit' name='subsrc' value='$act' /></th></tr></tfoot>";
+					echo "<tbody><tfoot><tr><th colspan='2'><input type='submit' name='subsrc' value='$act' /><input type='submit' name='remsrc' value='Remove Source' /></th></tr></tfoot>";
 				} 
 
 				
@@ -2757,10 +2789,11 @@ if ($selrep) {
 		
 		if ($selcomp=='Publications' || $selcomp=='SH') {
 			if ($selpub != "None") {	
+				// source link
 				$pubs="select s.schedID,r.Report,r.repID,s.DestDetail,l.DestRepName,l.Format,r.Path,r.ReportType,s.Recurrence,s.Zipped
 						from SourceLink l 
-						inner join Schedules s on s.schedID=l.schID
-						inner join Reports r on r.repID=s.repID 
+						inner join Reports r on r.repID=l.srcID 
+						inner join Schedules s on s.repID=r.repID	 
 						where s.schedID=$selpub and l.RepID=$selrep";
 					
 				$pubq = mysql_query($pubs,$repc);
@@ -2795,6 +2828,7 @@ echo "</div>"; // d0
 ?>
 </form>
 <script>
+
 
 </script>
 </body>
