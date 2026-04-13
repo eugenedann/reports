@@ -191,6 +191,7 @@ th, td {
 	color: white;
 	background-color: blue;	
 }
+
 </style>
 <script>
 //taglnk
@@ -1744,7 +1745,8 @@ if ($selrep) {
 				echo "</select></th></tr>";
 				if ($selcomp=='Tables') {
 					$ch= $tablnk ? "checked" : "";
-					$wa="Select Table: <select name='seltab' onchange='this.form.submit()'>";
+					
+					$wa="Select Table: <select name='seltab'  onchange='this.form.submit()'>";
 					$tbs="select t.tabID,t.TableName,l.tabID as ltab,d.Server from TableDet t
 							left join TableLinks l on l.tabID=t.tabID and l.repID=$selrep
 							left join DatabaseDet d on d.dbID=t.dbID
@@ -1926,7 +1928,7 @@ if ($selrep) {
 					$dbcq = mysql_query($dbcs,$repc);
 					if ($dbcr = mysql_fetch_array($dbcq , MYSQL_ASSOC)) {
 						$pers="select 
-								case when Recurrence like '%mo%' then 'mo'
+								case when Recurrence like '%month%' then 'mo'
 									 when Recurrence like '%we%' then 'we'
 									 when Recurrence like '%da%' or Recurrence like '%mtd%' then 'da'
 									 else Recurrence
@@ -1940,11 +1942,11 @@ if ($selrep) {
 						if ($dbcr['DB']=="IOtel") { 
 							$wa="";
 							if ($perr['period'] != "Ad-hoc") {
-								$wa=" and (period like '%{$perr['period']}%'";
-							}
-							
-							if ($perr['period']=='da' && $wa) {
-								$wa.=" or period like '%mtd%')";
+								if ($perr['period']=='da') {
+									$wa=" and (period like '%{$perr['period']}%' or period like '%mtd%')";
+								} else {
+									$wa=" and period like '%{$perr['period']}%'";
+								}
 							} else if ($perr['period']=='da') {
 								$wa.=" and period like '%mtd%')";
 							} 
@@ -1963,7 +1965,7 @@ if ($selrep) {
 					$recq = mysql_query($recs,$repc);
 					
 					echo "<thead>";	
-					echo "<tr><th colspan='2'><textarea>$recs</textarea></th></tr>";
+					//echo "<tr><th colspan='2'><textarea>$recs</textarea></th></tr>";
 						
 					$ls="";
 					while ($recr = mysql_fetch_array($recq , MYSQL_ASSOC)) {
@@ -2790,7 +2792,7 @@ if ($selrep) {
 		if ($selcomp=='Publications' || $selcomp=='SH') {
 			if ($selpub != "None") {	
 				// source link
-				$pubs="select s.schedID,r.Report,r.repID,s.DestDetail,l.DestRepName,l.Format,r.Path,r.ReportType,s.Recurrence,s.Zipped
+				$pubs="select s.schedID,r.Report,r.repID,s.DestDetail,l.DestRepName,l.Format,r.Path,r.ReportType,s.Recurrence,s.Zipped,s.runTime
 						from SourceLink l 
 						inner join Reports r on r.repID=l.srcID 
 						inner join Schedules s on s.repID=r.repID	 
@@ -2810,6 +2812,7 @@ if ($selrep) {
 					$z = $pubr['Zipped'] ? "Yes" : "No";
 					echo "<tr><th>Dest Zipped</th><td>$z</td></tr>";
 					echo "<tr><th>Recurrence</th><td>{$pubr['Recurrence']}</td></tr>";
+					echo "<tr><th>Runtime</th><td>{$pubr['runTime']}</td></tr>";
 				}
 				echo "</table>";
 			}	
